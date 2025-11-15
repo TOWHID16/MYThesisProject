@@ -1,0 +1,15 @@
+# Core libraries
+pandas
+# For LLM APIs
+openai
+google-generativeai
+anthropic
+# Environment variables
+python-dotenv
+# SQL parsing and validation
+sqlparse
+# Hugging Face Datasets for easy data loading
+datasets
+# For plotting results
+matplotlib
+seaborn
