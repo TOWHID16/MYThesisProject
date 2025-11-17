@@ -2,17 +2,19 @@
 # SCoT-SQL: Plan -> Plan-Check -> Final SQL
 # Output: runs/dev_30/predicted_scot_models_gemini-2.5-pro.sql
 #
-# Code updated based on instruction_2 & instruction_3:
+# Code updated based on instruction_2, instruction_3, & instruction_4:
 # A) Plan temperature is set to 0.3.
 # B) FEW_SHOT_CHECK includes mandatory FK hints and canonical rules.
 # C) A new canonicalization step (build_canon_prompt) is added.
 # D) build_repair_prompt includes error-specific hints.
 # E) Added 3 new FEW_SHOT_PLAN examples (UNION, EXCEPT, INTERSECT).
-# F) Added standard-style candidate pooling (2 SCoT + 1 Standard).
+# F) Added standard-style candidate pooling (Now 3 SCoT + 1 Standard).
 # G) Discard 'SELECT 1;' candidates.
 # H) Improved canonicalization to fallback on 'SELECT 1;'.
 # I) Increased timeouts to 120s.
 # J) Added debug logging to scot_debug.log.
+# K) (instr_4) Updated repair/canon prompts to preserve ORDER BY.
+# L) (instr_4) Added plan-guard helpers (_enforce_plan, _add_nocase) for post-processing.
 
 import re, os, json, time
 from pathlib import Path
@@ -21,6 +23,59 @@ load_dotenv()
 
 from utils_gemini_rest import gemini_generate_text
 import sqlite3
+import typing as _t
+
+# UPDATE D (instr_4): Add Plan-guard + NOCASE heuristic helpers
+def _parse_plan(checked_plan: str) -> dict:
+    """Parse minimal ORDER BY and LIMIT from the checked plan."""
+    ob = None
+    lim = None
+    for line in checked_plan.splitlines():
+        line = line.strip()
+        if line.lower().startswith("- order by:"):
+            ob = line.split(":",1)[1].strip()
+        if line.lower().startswith("- limit:"):
+            lim = line.split(":",1)[1].strip()
+    return {"order_by": ob, "limit": lim}
+
+def _add_nocase(sql: str) -> str:
+    """Make string equality case-insensitive via COLLATE NOCASE."""
+    # ... alias.col = 'text'  -> alias.col COLLATE NOCASE = 'text'
+    return re.sub(r"(\b\w+\.\w+\b)\s*=\s*('(?:[^']|'')*')", r"\1 COLLATE NOCASE = \2", sql, flags=re.I)
+
+def _normalize_order_count(expr: str) -> str:
+    # ORDER BY COUNT(anything) -> ORDER BY COUNT(*)
+    return re.sub(r"COUNT\s*\([^)]*\)", "COUNT(*)", expr, flags=re.I)
+
+def _ensure_semicolon(s: str) -> str:
+    s = s.strip()
+    if not s.endswith(";"):
+        s += ";"
+    return s
+
+def _enforce_plan(sql: str, checked_plan: str) -> str:
+    """Append ORDER BY/LIMIT from plan if missing; keep existing ones."""
+    sql0 = sql.strip().rstrip(";")
+    meta = _parse_plan(checked_plan)
+    order_by = (meta.get("order_by") or "").strip()
+    limit    = (meta.get("limit") or "").strip()
+
+    out = sql0
+
+    # Add ORDER BY if plan has it and SQL doesn't
+    if order_by and order_by.lower() != "(none)" and " order by " not in out.lower():
+        # Normalize common COUNT(...) DESC
+        ob = _normalize_order_count(order_by)
+        out += f" ORDER BY {ob}"
+
+    # Add LIMIT if plan has it and SQL doesn't
+    if limit and limit.lower() != "(none)" and " limit " not in out.lower():
+        # LIMIT could be like "1" or "3"
+        m = re.match(r"(\d+)", limit)
+        if m:
+            out += f" LIMIT {m.group(1)}"
+    return _ensure_semicolon(out)
+
 
 def ask_with_retry(prompt, temperature, max_output_tokens, timeout, tries=3, sleep_sec=0.5):
     last = None
@@ -49,7 +104,7 @@ def try_exec(db_path, sql):
         return False, f"{type(e).__name__}: {e}"
 
 def build_repair_prompt(schema_str, question, checked_plan, bad_sql, error_msg):
-    # UPDATE D: Added error-specific hints (Additional Fix Rules)
+    # UPDATE B (instr_4): Preserve ORDER BY rule
     return f"""{schema_str.strip()}
 
 The SQL below failed on SQLite with this error:
@@ -61,7 +116,7 @@ Return ONLY the corrected SQL in a fenced block.
 Additional Fix Rules:
 - If the error is "no such column" or "ambiguous column name": qualify all columns with table alias from the plan.
 - If the error is "misuse of aggregate" or "GROUP BY" mismatch: ensure all non-aggregated selected columns appear in GROUP BY.
-- Remove ORDER BY unless the question explicitly asks for ranking/sorting.
+- Preserve ORDER BY and LIMIT exactly as specified by the SCoT-Plan. Only omit them if the plan shows (none).
 - Use SELECT DISTINCT to deduplicate when no aggregation is needed.
 - Use only schema columns and the FK join keys shown in the plan; do not invent columns.
 
@@ -278,13 +333,14 @@ SCoT-Plan:
 
 # UPDATE C: Added build_canon_prompt function
 def build_canon_prompt(schema_str: str, sql_text: str) -> str:
+    # UPDATE C (instr_4): Preserve ORDER BY rule
     return f"""{schema_str.strip()}
 
 Rewrite the SQL **without changing its semantics** to satisfy ALL rules:
 
 - Qualify **every** column with the correct table alias.
 - If non-aggregated columns appear with aggregates, add GROUP BY for all non-aggregates.
-- If no ranking/sorting is asked, **remove ORDER BY**.
+- Do **not** remove ORDER BY if it is present; preserve existing ORDER BY/LIMIT (do not add new ones).
 - If duplicates are possible but no aggregation is needed, use SELECT DISTINCT.
 - SQL-92 only; no CTE/window.
 - Keep it as **one** statement ending with ";", in a fenced block.
@@ -372,10 +428,11 @@ def run():
             print(f"  [Check ERR] {i}/{len(data)} -> {e}")
             checked = plan  # fallback
 
-        # 3) FINAL SQL: 2× SCoT + 1× Standard (UPDATE F)
+        # 3) FINAL SQL: 3x SCoT + 1x Standard
         sql_prompt = build_sql_prompt(schema, checked)
         candidates = []
-        for _ in range(2):
+        # UPDATE A (instr_4): Change 2 -> 3
+        for _ in range(3):
             try:
                 sql_text = ask_with_retry(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=120)
                 cand_sql = extract_sql(sql_text)
@@ -422,6 +479,10 @@ def run():
                     canon_candidates.append(canon_sql)
             except Exception:
                 canon_candidates.append(cand) # fallback on error
+        
+        # UPDATE D (instr_4): Apply post-processing (NOCASE, enforce plan)
+        canon_candidates = [_enforce_plan(_add_nocase(c), checked) for c in canon_candidates]
+        candidates       = [_enforce_plan(_add_nocase(c), checked) for c in candidates]
 
         sql = None
         last_error = "failed to execute" # Default error
@@ -454,18 +515,22 @@ def run():
                     rep_prompt, temperature=0.0, max_output_tokens=800, timeout=120 # UPDATE I
                 )
                 fixed_sql = extract_sql(fixed_text)
-                ok2, err_msg2 = try_exec(ex["db_path"], fixed_sql)
+                # Apply post-process to repair
+                fixed_sql_processed = _enforce_plan(_add_nocase(fixed_sql), checked)
+                ok2, err_msg2 = try_exec(ex["db_path"], fixed_sql_processed)
                 if ok2:
-                    sql = fixed_sql
+                    sql = fixed_sql_processed
                 else:
                     # Second repair attempt
-                    rep_prompt2 = build_repair_prompt(schema, q, checked, fixed_sql, err_msg2)
+                    rep_prompt2 = build_repair_prompt(schema, q, checked, fixed_sql_processed, err_msg2)
                     fixed_text2 = ask_with_retry(
                         rep_prompt2, temperature=0.0, max_output_tokens=800, timeout=120 # UPDATE I
                     )
                     fixed_sql2 = extract_sql(fixed_text2)
-                    ok3, _ = try_exec(ex["db_path"], fixed_sql2) # Don't care about 3rd error
-                    sql = fixed_sql2 if ok3 else "SELECT 1;"
+                    # Apply post-process to 2nd repair
+                    fixed_sql2_processed = _enforce_plan(_add_nocase(fixed_sql2), checked)
+                    ok3, _ = try_exec(ex["db_path"], fixed_sql2_processed) # Don't care about 3rd error
+                    sql = fixed_sql2_processed if ok3 else "SELECT 1;"
             except Exception:
                 sql = "SELECT 1;"
         
