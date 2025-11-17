@@ -13,3 +13,6 @@ datasets
 # For plotting results
 matplotlib
 seaborn
+ 
+# Dependency for official Spider evaluation script
+nltk

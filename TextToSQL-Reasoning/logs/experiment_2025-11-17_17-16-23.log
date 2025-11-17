@@ -1,0 +1,23 @@
+2025-11-17 17:16:23,875 - INFO - --- Starting Text-to-SQL Experiment ---
+2025-11-17 17:16:25,720 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/spider/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 17:16:26,023 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/xlangai/spider/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 17:16:26,047 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/datasets/xlangai/spider/0c350918f3f29ec754f1181c65cdce76cd6c133c/README.md "HTTP/1.1 200 OK"
+2025-11-17 17:16:26,303 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/spider.py "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 17:16:26,568 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/xlangai/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/spider.py "HTTP/1.1 404 Not Found"
+2025-11-17 17:16:27,537 - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/spider/spider.py "HTTP/1.1 404 Not Found"
+2025-11-17 17:16:27,959 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/spider/revision/0c350918f3f29ec754f1181c65cdce76cd6c133c "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 17:16:28,225 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/xlangai/spider/revision/0c350918f3f29ec754f1181c65cdce76cd6c133c "HTTP/1.1 200 OK"
+2025-11-17 17:16:28,482 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/.huggingface.yaml "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 17:16:28,741 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/xlangai/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2025-11-17 17:16:29,148 - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=spider "HTTP/1.1 404 Not Found"
+2025-11-17 17:16:29,437 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/spider/tree/0c350918f3f29ec754f1181c65cdce76cd6c133c/spider?recursive=true&expand=false "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 17:16:29,710 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/xlangai/spider/tree/0c350918f3f29ec754f1181c65cdce76cd6c133c/spider?recursive=true&expand=false "HTTP/1.1 200 OK"
+2025-11-17 17:16:29,957 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/spider/tree/0c350918f3f29ec754f1181c65cdce76cd6c133c?recursive=false&expand=false "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 17:16:30,224 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/xlangai/spider/tree/0c350918f3f29ec754f1181c65cdce76cd6c133c?recursive=false&expand=false "HTTP/1.1 200 OK"
+2025-11-17 17:16:30,584 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/dataset_infos.json "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 17:16:30,848 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/xlangai/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/dataset_infos.json "HTTP/1.1 404 Not Found"
+2025-11-17 17:16:31,243 - INFO - Running experiment on 50 samples.
+2025-11-17 17:16:31,255 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 17:16:32,100 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 17:16:38,709 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 17:16:49,208 - WARNING - Rate limit exceeded for gemini. Retrying in 20 seconds...

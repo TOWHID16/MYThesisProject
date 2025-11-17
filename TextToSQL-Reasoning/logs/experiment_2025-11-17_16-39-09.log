@@ -1,0 +1,650 @@
+2025-11-17 16:39:09,222 - INFO - --- Starting Text-to-SQL Experiment ---
+2025-11-17 16:39:10,225 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/spider/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 16:39:10,491 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/xlangai/spider/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 16:39:10,515 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/datasets/xlangai/spider/0c350918f3f29ec754f1181c65cdce76cd6c133c/README.md "HTTP/1.1 200 OK"
+2025-11-17 16:39:10,797 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/spider.py "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 16:39:11,059 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/xlangai/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/spider.py "HTTP/1.1 404 Not Found"
+2025-11-17 16:39:12,019 - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/spider/spider.py "HTTP/1.1 404 Not Found"
+2025-11-17 16:39:12,312 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/spider/revision/0c350918f3f29ec754f1181c65cdce76cd6c133c "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 16:39:12,572 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/xlangai/spider/revision/0c350918f3f29ec754f1181c65cdce76cd6c133c "HTTP/1.1 200 OK"
+2025-11-17 16:39:12,830 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/.huggingface.yaml "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 16:39:13,089 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/xlangai/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2025-11-17 16:39:13,587 - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=spider "HTTP/1.1 404 Not Found"
+2025-11-17 16:39:13,865 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/spider/tree/0c350918f3f29ec754f1181c65cdce76cd6c133c/spider?recursive=true&expand=false "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 16:39:14,132 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/xlangai/spider/tree/0c350918f3f29ec754f1181c65cdce76cd6c133c/spider?recursive=true&expand=false "HTTP/1.1 200 OK"
+2025-11-17 16:39:14,393 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/spider/tree/0c350918f3f29ec754f1181c65cdce76cd6c133c?recursive=false&expand=false "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 16:39:14,674 - INFO - HTTP Request: GET https://huggingface.co/api/datasets/xlangai/spider/tree/0c350918f3f29ec754f1181c65cdce76cd6c133c?recursive=false&expand=false "HTTP/1.1 200 OK"
+2025-11-17 16:39:14,987 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/dataset_infos.json "HTTP/1.1 307 Temporary Redirect"
+2025-11-17 16:39:15,249 - INFO - HTTP Request: HEAD https://huggingface.co/datasets/xlangai/spider/resolve/0c350918f3f29ec754f1181c65cdce76cd6c133c/dataset_infos.json "HTTP/1.1 404 Not Found"
+2025-11-17 16:39:15,555 - INFO - Running experiment on 200 samples.
+2025-11-17 16:39:15,568 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:39:17,144 - INFO - Question: How many singers do we have?
+2025-11-17 16:39:17,145 - INFO - Predicted SQL: SELECT count(*) FROM singers
+2025-11-17 16:39:17,156 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:39:18,703 - INFO - Question: How many singers do we have?
+2025-11-17 16:39:18,705 - INFO - Predicted SQL: SELECT COUNT(*) FROM singer
+2025-11-17 16:39:18,710 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:39:22,380 - INFO - Question: How many singers do we have?
+2025-11-17 16:39:22,381 - INFO - Predicted SQL: SELECT COUNT(singer_id) FROM singers
+2025-11-17 16:39:22,386 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:39:30,597 - INFO - Question: How many singers do we have?
+2025-11-17 16:39:30,598 - INFO - Predicted SQL: SELECT T1.student_name FROM student AS T1 INNER JOIN enrollment AS T2 ON T1.stu_ID = T2.stu_ID INNER JOIN course AS T3 ON T2.course_ID = T3.course_ID WHERE T3.course_name = 'Math' INTERSECT SELECT T1.student_name FROM student AS T1 INNER JOIN enrollment AS T2 ON T1.stu_ID = T2.stu_ID INNER JOIN course AS T3 ON T2.course_ID = T3.course_ID WHERE T3.course_name = 'Physics'
+2025-11-17 16:39:30,600 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:39:37,736 - INFO - Question: How many singers do we have?
+2025-11-17 16:39:37,738 - INFO - Predicted SQL: SELECT COUNT(*) FROM singer
+2025-11-17 16:39:37,771 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:39:39,627 - INFO - Question: What is the total number of singers?
+2025-11-17 16:39:39,627 - INFO - Predicted SQL: SELECT count(*) FROM singer
+2025-11-17 16:39:39,629 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:39:45,831 - INFO - Question: What is the total number of singers?
+2025-11-17 16:39:45,831 - INFO - Predicted SQL: CREATE TABLE singer (   singer_id INTEGER PRIMARY KEY,   name VARCHAR(255),   birth_year INTEGER,   nationality VARCHAR(255) )  CREATE TABLE song (   song_id INTEGER PRIMARY KEY,   title VARCHAR(255),   duration INTEGER,   album_id INTEGER,   genre VARCHAR(255) )  CREATE TABLE album (   album_id INTEGER PRIMARY KEY,   title VARCHAR(255),   release_year INTEGER,   singer_id INTEGER,   FOREIGN KEY (singer_id) REFERENCES singer(singer_id) )  CREATE TABLE accompanies (   song_id INTEGER,   album_id INTEGER,   PRIMARY KEY (song_id, album_id),   FOREIGN KEY (song_id) REFERENCES song(song_id),   FOREIGN KEY (album_id) REFERENCES album(album_id) )
+2025-11-17 16:39:45,841 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:39:59,547 - INFO - Question: What is the total number of singers?
+2025-11-17 16:39:59,548 - INFO - Predicted SQL: SELECT COUNT(*) FROM singers
+2025-11-17 16:39:59,552 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:40:10,957 - INFO - Question: What is the total number of singers?
+2025-11-17 16:40:10,958 - INFO - Predicted SQL: SELECT T1.student_name FROM student AS T1 INNER JOIN enrollment AS T2 ON T1.student_id = T2.student_id INNER JOIN course AS T3 ON T2.course_id = T3.course_id WHERE T3.course_name = 'Math' INTERSECT SELECT T1.student_name FROM student AS T1 INNER JOIN enrollment AS T2 ON T1.student_id = T2.student_id INNER JOIN course AS T3 ON T2.course_id = T3.course_id WHERE T3.course_name = 'Physics'
+2025-11-17 16:40:10,965 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:40:11,615 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:40:30,903 - INFO - Question: What is the total number of singers?
+2025-11-17 16:40:30,904 - INFO - Predicted SQL: SELECT count(*) FROM singer
+2025-11-17 16:40:30,942 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:40:32,422 - INFO - Question: Show name, country, age for all singers ordered by age from the oldest to the youngest.
+2025-11-17 16:40:32,423 - INFO - Predicted SQL: SELECT name, country, age FROM singer ORDER BY age DESC
+2025-11-17 16:40:32,429 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:40:34,032 - INFO - Question: Show name, country, age for all singers ordered by age from the oldest to the youngest.
+2025-11-17 16:40:34,033 - INFO - Predicted SQL: SELECT name, country, age FROM singer ORDER BY age DESC
+2025-11-17 16:40:34,035 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:40:36,179 - INFO - Question: Show name, country, age for all singers ordered by age from the oldest to the youngest.
+2025-11-17 16:40:36,180 - INFO - Predicted SQL: SELECT name, country, age FROM singer ORDER BY age DESC
+2025-11-17 16:40:36,185 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:40:51,359 - INFO - Question: Show name, country, age for all singers ordered by age from the oldest to the youngest.
+2025-11-17 16:40:51,360 - INFO - Predicted SQL: SELECT Name, Country, Age FROM singer ORDER BY Age DESC
+2025-11-17 16:40:51,366 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:40:55,272 - INFO - Question: Show name, country, age for all singers ordered by age from the oldest to the youngest.
+2025-11-17 16:40:55,273 - INFO - Predicted SQL: SELECT name, country, age FROM singers ORDER BY age DESC
+2025-11-17 16:40:55,311 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:40:56,960 - INFO - Question: What are the names, countries, and ages for every singer in descending order of age?
+2025-11-17 16:40:56,962 - INFO - Predicted SQL: SELECT Name, Country, Age FROM singer ORDER BY Age DESC
+2025-11-17 16:40:56,967 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:40:57,438 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:41:02,895 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 16:41:13,627 - WARNING - Rate limit exceeded for gemini. Retrying in 20 seconds...
+2025-11-17 16:41:36,340 - INFO - Question: What are the names, countries, and ages for every singer in descending order of age?
+2025-11-17 16:41:36,341 - INFO - Predicted SQL: ite CREATE TABLE singer (   singer_id INTEGER PRIMARY KEY,   name VARCHAR(255),   country VARCHAR(255),   song VARCHAR(255),   age INTEGER )  CREATE TABLE song (   song_id INTEGER PRIMARY KEY,   title VARCHAR(255),   artist VARCHAR(255),   album VARCHAR(255),   year INTEGER )  CREATE TABLE album (   album_id INTEGER PRIMARY KEY,   title VARCHAR(255),   artist VARCHAR(255),   year INTEGER )
+2025-11-17 16:41:36,346 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:41:38,541 - INFO - Question: What are the names, countries, and ages for every singer in descending order of age?
+2025-11-17 16:41:38,542 - INFO - Predicted SQL: SELECT Name, Country, Age FROM singer ORDER BY Age DESC
+2025-11-17 16:41:38,547 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:41:41,078 - INFO - Question: What are the names, countries, and ages for every singer in descending order of age?
+2025-11-17 16:41:41,079 - INFO - Predicted SQL: SELECT Name, Country, Age FROM singer ORDER BY Age DESC
+2025-11-17 16:41:41,084 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:41:43,843 - INFO - Question: What are the names, countries, and ages for every singer in descending order of age?
+2025-11-17 16:41:43,844 - INFO - Predicted SQL: SELECT Name, Country, Age FROM singer ORDER BY Age DESC
+2025-11-17 16:41:43,873 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:41:46,643 - INFO - Question: What is the average, minimum, and maximum age of all singers from France?
+2025-11-17 16:41:46,644 - INFO - Predicted SQL: SELECT AVG(S.age) AS average_age, MIN(S.age) AS minimum_age, MAX(S.age) AS maximum_age FROM singers AS S JOIN countries AS C ON S.country_id = C.country_id WHERE C.country_name = 'France'
+2025-11-17 16:41:46,649 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:41:48,530 - INFO - Question: What is the average, minimum, and maximum age of all singers from France?
+2025-11-17 16:41:48,532 - INFO - Predicted SQL: SELECT AVG(age), MIN(age), MAX(age) FROM singer WHERE country = 'France'
+2025-11-17 16:41:48,537 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:41:53,005 - INFO - Question: What is the average, minimum, and maximum age of all singers from France?
+2025-11-17 16:41:53,007 - INFO - Predicted SQL: SELECT AVG(age) AS average_age, MIN(age) AS minimum_age, MAX(age) AS maximum_age FROM singers WHERE country = 'France'
+2025-11-17 16:41:53,011 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:41:58,723 - INFO - Question: What is the average, minimum, and maximum age of all singers from France?
+2025-11-17 16:41:58,724 - INFO - Predicted SQL: CREATE TABLE singer (   singer_id INTEGER PRIMARY KEY,   name TEXT,   age INTEGER,   country TEXT )
+2025-11-17 16:41:58,729 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:42:02,231 - INFO - Question: What is the average, minimum, and maximum age of all singers from France?
+2025-11-17 16:42:02,232 - INFO - Predicted SQL: SELECT AVG(Age), MIN(Age), MAX(Age) FROM singer WHERE Country = 'France'
+2025-11-17 16:42:02,274 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:42:05,038 - INFO - Question: What is the average, minimum, and maximum age for all French singers?
+2025-11-17 16:42:05,040 - INFO - Predicted SQL: SELECT AVG(S.age) AS average_age, MIN(S.age) AS minimum_age, MAX(S.age) AS maximum_age FROM singers AS S JOIN countries AS C ON S.country_id = C.country_id WHERE C.nationality = 'French'
+2025-11-17 16:42:05,045 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:42:07,952 - INFO - Question: What is the average, minimum, and maximum age for all French singers?
+2025-11-17 16:42:07,954 - INFO - Predicted SQL: SELECT AVG(age) AS average_age, MIN(age) AS minimum_age, MAX(age) AS maximum_age FROM singers WHERE nationality = 'French'
+2025-11-17 16:42:07,959 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:42:08,450 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:42:14,081 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 16:42:28,197 - INFO - Question: What is the average, minimum, and maximum age for all French singers?
+2025-11-17 16:42:28,198 - INFO - Predicted SQL: SELECT AVG(age) AS average_age, MIN(age) AS minimum_age, MAX(age) AS maximum_age FROM singers WHERE nationality = 'French'
+2025-11-17 16:42:28,203 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:42:32,888 - INFO - Question: What is the average, minimum, and maximum age for all French singers?
+2025-11-17 16:42:32,889 - INFO - Predicted SQL: ite CREATE TABLE singers (   singer_id INTEGER PRIMARY KEY,   name TEXT NOT NULL,   nationality TEXT NOT NULL,   age INTEGER )  -- Example Data (Optional, for testing) INSERT INTO singers (name, nationality, age) VALUES ('Edith Piaf', 'French', 47), ('Charles Aznavour', 'French', 94), ('Stromae', 'Belgian', 38), ('Johnny Hallyday', 'French', 74), ('Celine Dion', 'Canadian', 55), ('Dalida', 'French', 54), ('Jacques Brel', 'Belgian', 49), ('Mireille Mathieu', 'French', 77)
+2025-11-17 16:42:32,900 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:42:37,014 - INFO - Question: What is the average, minimum, and maximum age for all French singers?
+2025-11-17 16:42:37,015 - INFO - Predicted SQL: SELECT AVG(age), MIN(age), MAX(age) FROM singers WHERE country = 'French'
+2025-11-17 16:42:37,068 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:42:41,437 - INFO - Question: Show the name and the release year of the song by the youngest singer.
+2025-11-17 16:42:41,438 - INFO - Predicted SQL: SELECT T1.title, T1.release_year FROM songs AS T1 INNER JOIN singers AS T2 ON T1.singer_id = T2.singer_id WHERE T2.age = ( SELECT MIN(age) FROM singers )
+2025-11-17 16:42:41,443 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:42:45,021 - INFO - Question: Show the name and the release year of the song by the youngest singer.
+2025-11-17 16:42:45,022 - INFO - Predicted SQL: SELECT T1.title, T1.release_year FROM song AS T1 JOIN singer AS T2 ON T1.singer_id = T2.singer_id WHERE T2.age = ( SELECT MIN(age) FROM singer )
+2025-11-17 16:42:45,027 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:42:48,293 - INFO - Question: Show the name and the release year of the song by the youngest singer.
+2025-11-17 16:42:48,294 - INFO - Predicted SQL: SELECT T2.song_name, T2.release_year FROM singer AS T1 JOIN song AS T2 ON T1.singer_id = T2.singer_id WHERE T1.age = (SELECT MIN(age) FROM singer)
+2025-11-17 16:42:48,301 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:43:01,224 - INFO - Question: Show the name and the release year of the song by the youngest singer.
+2025-11-17 16:43:01,225 - INFO - Predicted SQL: SELECT T2.Title, T2.ReleaseYear FROM Singers AS T1 JOIN Songs AS T2 ON T1.SingerID = T2.SingerID WHERE T1.BirthDate = ( SELECT MAX(BirthDate) FROM Singers )
+2025-11-17 16:43:01,230 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:43:10,436 - INFO - Question: Show the name and the release year of the song by the youngest singer.
+2025-11-17 16:43:10,438 - INFO - Predicted SQL: SELECT T1.name, T1.release_year FROM songs AS T1 INNER JOIN singers AS T2 ON T1.singer_id = T2.singer_id WHERE T2.birth_year = ( SELECT MAX(birth_year) FROM singers )
+2025-11-17 16:43:10,483 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:43:14,793 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:43:22,668 - INFO - Question: What are the names and release years for all the songs of the youngest singer?
+2025-11-17 16:43:22,669 - INFO - Predicted SQL: SELECT T1.title, T1.release_year FROM songs AS T1 INNER JOIN singers AS T2 ON T1.singer_id = T2.singer_id WHERE T2.age = ( SELECT MIN(age) FROM singers )
+2025-11-17 16:43:22,674 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:43:25,313 - INFO - Question: What are the names and release years for all the songs of the youngest singer?
+2025-11-17 16:43:25,314 - INFO - Predicted SQL: SELECT S.song_name, S.release_year FROM song AS S JOIN singer AS SI ON S.singer_id = SI.singer_id WHERE SI.birth_year = ( SELECT MIN(birth_year) FROM singer )
+2025-11-17 16:43:25,319 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:43:27,771 - INFO - Question: What are the names and release years for all the songs of the youngest singer?
+2025-11-17 16:43:27,772 - INFO - Predicted SQL: SELECT T2.title, T2.release_year FROM singers AS T1 INNER JOIN songs AS T2 ON T1.singer_id = T2.singer_id WHERE T1.age = ( SELECT MIN(age) FROM singers )
+2025-11-17 16:43:27,777 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:43:37,693 - INFO - Question: What are the names and release years for all the songs of the youngest singer?
+2025-11-17 16:43:37,694 - INFO - Predicted SQL: SELECT T1.song_name, T1.release_year FROM songs AS T1 INNER JOIN singers AS T2 ON T1.singer_id = T2.singer_id WHERE T2.singer_id IN ( SELECT singer_id FROM singers WHERE birth_year = ( SELECT MAX(birth_year) FROM singers ) )
+2025-11-17 16:43:37,699 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:43:52,926 - INFO - Question: What are the names and release years for all the songs of the youngest singer?
+2025-11-17 16:43:52,927 - INFO - Predicted SQL: SELECT MIN(age) FROM Singers)" }
+2025-11-17 16:43:52,975 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:43:55,077 - INFO - Question: What are all distinct countries where singers above age 20 are from?
+2025-11-17 16:43:55,078 - INFO - Predicted SQL: SELECT DISTINCT T1.country FROM person AS T1 JOIN singer AS T2 ON T1.person_id = T2.singer_id WHERE T1.age > 20
+2025-11-17 16:43:55,083 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:43:56,694 - INFO - Question: What are all distinct countries where singers above age 20 are from?
+2025-11-17 16:43:56,695 - INFO - Predicted SQL: SELECT DISTINCT country FROM singer WHERE age > 20
+2025-11-17 16:43:56,700 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:43:59,367 - INFO - Question: What are all distinct countries where singers above age 20 are from?
+2025-11-17 16:43:59,368 - INFO - Predicted SQL: SELECT DISTINCT country FROM singers WHERE age > 20
+2025-11-17 16:43:59,370 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:44:02,459 - INFO - Question: What are all distinct countries where singers above age 20 are from?
+2025-11-17 16:44:02,460 - INFO - Predicted SQL: SELECT DISTINCT country FROM singers WHERE age > 20
+2025-11-17 16:44:02,466 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:44:05,441 - INFO - Question: What are all distinct countries where singers above age 20 are from?
+2025-11-17 16:44:05,442 - INFO - Predicted SQL: SELECT DISTINCT country FROM singer WHERE age > 20
+2025-11-17 16:44:05,479 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:44:07,024 - INFO - Question: What are  the different countries with singers above age 20?
+2025-11-17 16:44:07,025 - INFO - Predicted SQL: SELECT DISTINCT country FROM singers WHERE age > 20
+2025-11-17 16:44:07,030 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:44:07,508 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:44:13,119 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 16:44:24,929 - INFO - Question: What are  the different countries with singers above age 20?
+2025-11-17 16:44:24,931 - INFO - Predicted SQL: SELECT DISTINCT T1.country FROM singers AS T1 WHERE T1.age > 20
+2025-11-17 16:44:24,935 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:44:28,598 - INFO - Question: What are  the different countries with singers above age 20?
+2025-11-17 16:44:28,598 - INFO - Predicted SQL: SELECT DISTINCT country FROM Singers WHERE age > 20
+2025-11-17 16:44:28,600 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:44:35,373 - INFO - Question: What are  the different countries with singers above age 20?
+2025-11-17 16:44:35,374 - INFO - Predicted SQL: CREATE TABLE singers (     singer_id INTEGER PRIMARY KEY,     name TEXT NOT NULL,     age INTEGER,     country TEXT )
+2025-11-17 16:44:35,376 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:44:40,648 - INFO - Question: What are  the different countries with singers above age 20?
+2025-11-17 16:44:40,649 - INFO - Predicted SQL: SELECT DISTINCT Country FROM singer WHERE Age > 20" }
+2025-11-17 16:44:40,685 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:44:42,597 - INFO - Question: Show all countries and the number of singers in each country.
+2025-11-17 16:44:42,598 - INFO - Predicted SQL: SELECT T1.name, COUNT(T2.singer_id) FROM country AS T1 LEFT JOIN singer AS T2 ON T1.country_id = T2.country_id GROUP BY T1.country_id
+2025-11-17 16:44:42,603 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:44:45,079 - INFO - Question: Show all countries and the number of singers in each country.
+2025-11-17 16:44:45,081 - INFO - Predicted SQL: SELECT T1.cname, COUNT(T2.singer_id) FROM country AS T1 LEFT JOIN singer AS T2 ON T1.country_id = T2.country_id GROUP BY T1.cname
+2025-11-17 16:44:45,085 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:44:48,763 - INFO - Question: Show all countries and the number of singers in each country.
+2025-11-17 16:44:48,765 - INFO - Predicted SQL: SELECT T1.country_name, COUNT(T2.singer_id) AS number_of_singers FROM country AS T1 LEFT JOIN singer AS T2 ON T1.country_id = T2.country_id GROUP BY T1.country_id, T1.country_name
+2025-11-17 16:44:48,770 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:44:53,222 - INFO - Question: Show all countries and the number of singers in each country.
+2025-11-17 16:44:53,223 - INFO - Predicted SQL: SELECT T1.country_name, COUNT(T2.singer_id) FROM country AS T1 LEFT JOIN singer AS T2 ON T1.country_id = T2.country_id GROUP BY T1.country_name
+2025-11-17 16:44:53,228 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:45:07,644 - INFO - Question: Show all countries and the number of singers in each country.
+2025-11-17 16:45:07,646 - INFO - Predicted SQL: SELECT T1.cname, COUNT(T2.singer_id) FROM country AS T1 LEFT JOIN singer AS T2 ON T1.country_id = T2.country_id GROUP BY T1.country_id, T1.cname
+2025-11-17 16:45:07,684 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:45:09,480 - INFO - Question: How many singers are from each country?
+2025-11-17 16:45:09,481 - INFO - Predicted SQL: SELECT T2.country_name, COUNT(T1.singer_id) FROM singers AS T1 INNER JOIN countries AS T2 ON T1.country_id = T2.country_id GROUP BY T2.country_name
+2025-11-17 16:45:09,486 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:45:10,958 - INFO - Question: How many singers are from each country?
+2025-11-17 16:45:10,959 - INFO - Predicted SQL: SELECT country, count(*) FROM singer GROUP BY country
+2025-11-17 16:45:10,964 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:45:11,416 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:45:22,301 - INFO - Question: How many singers are from each country?
+2025-11-17 16:45:22,302 - INFO - Predicted SQL: SELECT country, COUNT(singer_id) AS number_of_singers FROM singers GROUP BY country ORDER BY number_of_singers DESC, country ASC
+2025-11-17 16:45:22,307 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:45:24,906 - INFO - Question: How many singers are from each country?
+2025-11-17 16:45:24,906 - INFO - Predicted SQL: SELECT country, COUNT(singer_id) AS number_of_singers FROM singer GROUP BY country
+2025-11-17 16:45:24,909 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:45:32,876 - INFO - Question: How many singers are from each country?
+2025-11-17 16:45:32,877 - INFO - Predicted SQL: SELECT country, COUNT(*) FROM singer GROUP BY country
+2025-11-17 16:45:32,891 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:45:35,591 - INFO - Question: List all song names by singers above the average age.
+2025-11-17 16:45:35,592 - INFO - Predicted SQL: SELECT T1.title FROM songs AS T1 INNER JOIN singers AS T2 ON T1.artist_id = T2.artist_id WHERE T2.age > (SELECT AVG(age) FROM singers)
+2025-11-17 16:45:35,593 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:45:38,995 - INFO - Question: List all song names by singers above the average age.
+2025-11-17 16:45:38,995 - INFO - Predicted SQL: SELECT T1.song_name FROM songs AS T1 INNER JOIN singers AS T2 ON T1.singer_id = T2.singer_id WHERE T2.age > ( SELECT AVG(age) FROM singers )
+2025-11-17 16:45:38,998 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:45:45,188 - INFO - Question: List all song names by singers above the average age.
+2025-11-17 16:45:45,189 - INFO - Predicted SQL: ite -- Table: singers CREATE TABLE singers (     singer_id INTEGER PRIMARY KEY AUTOINCREMENT,     name TEXT NOT NULL,     age INTEGER )  -- Table: songs CREATE TABLE songs (     song_id INTEGER PRIMARY KEY AUTOINCREMENT,     title TEXT NOT NULL,     singer_id INTEGER,     FOREIGN KEY (singer_id) REFERENCES singers (singer_id) )
+2025-11-17 16:45:45,194 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:45:52,087 - INFO - Question: List all song names by singers above the average age.
+2025-11-17 16:45:52,088 - INFO - Predicted SQL: WITH AverageSingerAge AS ( SELECT AVG(age) AS avg_age FROM Singers ) SELECT T1.song_name FROM Songs AS T1 INNER JOIN Singers AS T2 ON T1.singer_id = T2.singer_id WHERE T2.age > (SELECT avg_age FROM AverageSingerAge)
+2025-11-17 16:45:52,093 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:45:57,531 - INFO - Question: List all song names by singers above the average age.
+2025-11-17 16:45:57,532 - INFO - Predicted SQL: SELECT T1.song_name FROM songs AS T1 INNER JOIN singers AS T2 ON T1.singer_id = T2.singer_id WHERE T2.age > ( SELECT AVG(age) FROM singers )
+2025-11-17 16:45:57,547 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:45:59,480 - INFO - Question: What are all the song names by singers who are older than average?
+2025-11-17 16:45:59,481 - INFO - Predicted SQL: SELECT T1.title FROM songs AS T1 INNER JOIN singers AS T2 ON T1.singer_id = T2.singer_id WHERE T2.age > ( SELECT AVG(age) FROM singers )
+2025-11-17 16:45:59,486 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:46:04,012 - INFO - Question: What are all the song names by singers who are older than average?
+2025-11-17 16:46:04,013 - INFO - Predicted SQL: SELECT T1.title FROM songs AS T1 INNER JOIN singers AS T2 ON T1.singer_id = T2.singer_id WHERE T2.age > ( SELECT AVG(age) FROM singers )
+2025-11-17 16:46:04,015 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:46:11,533 - INFO - Question: What are all the song names by singers who are older than average?
+2025-11-17 16:46:11,534 - INFO - Predicted SQL: SELECT T1.song_name FROM songs AS T1 INNER JOIN singers AS T2 ON T1.singer_id = T2.singer_id WHERE T2.age > ( SELECT AVG(age) FROM singers )
+2025-11-17 16:46:11,539 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:46:12,007 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:46:20,018 - INFO - Question: What are all the song names by singers who are older than average?
+2025-11-17 16:46:20,019 - INFO - Predicted SQL: SELECT T1.SongName FROM songs AS T1 JOIN singers AS T2 ON T1.SingerID = T2.SingerID WHERE T2.Age > ( SELECT AVG(Age) FROM singers )
+2025-11-17 16:46:20,023 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:46:23,417 - INFO - Question: What are all the song names by singers who are older than average?
+2025-11-17 16:46:23,419 - INFO - Predicted SQL: SELECT T1.Song_name FROM Songs AS T1 INNER JOIN Singers AS T2 ON T1.Singer_id = T2.Singer_id WHERE T2.Age > ( SELECT AVG(Age) FROM Singers )
+2025-11-17 16:46:23,452 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:46:25,216 - INFO - Question: Show location and name for all stadiums with a capacity between 5000 and 10000.
+2025-11-17 16:46:25,218 - INFO - Predicted SQL: SELECT location, name FROM stadium WHERE capacity BETWEEN 5000 AND 10000
+2025-11-17 16:46:25,246 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:46:26,909 - INFO - Question: Show location and name for all stadiums with a capacity between 5000 and 10000.
+2025-11-17 16:46:26,910 - INFO - Predicted SQL: SELECT sLocation, sName FROM stadium WHERE capacity BETWEEN 5000 AND 10000
+2025-11-17 16:46:26,914 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:46:30,659 - INFO - Question: Show location and name for all stadiums with a capacity between 5000 and 10000.
+2025-11-17 16:46:30,661 - INFO - Predicted SQL: SELECT location, name FROM stadium WHERE capacity BETWEEN 5000 AND 10000
+2025-11-17 16:46:30,665 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:46:32,595 - INFO - Question: Show location and name for all stadiums with a capacity between 5000 and 10000.
+2025-11-17 16:46:32,596 - INFO - Predicted SQL: SELECT Location, Name FROM stadium WHERE Capacity BETWEEN 5000 AND 10000
+2025-11-17 16:46:32,602 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:46:37,975 - INFO - Question: Show location and name for all stadiums with a capacity between 5000 and 10000.
+2025-11-17 16:46:37,976 - INFO - Predicted SQL: SELECT location, name FROM stadium WHERE capacity BETWEEN 5000 AND 10000
+2025-11-17 16:46:38,012 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:46:39,706 - INFO - Question: What are the locations and names of all stations with capacity between 5000 and 10000?
+2025-11-17 16:46:39,708 - INFO - Predicted SQL: SELECT location, name FROM stations WHERE capacity BETWEEN 5000 AND 10000
+2025-11-17 16:46:39,713 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:46:41,606 - INFO - Question: What are the locations and names of all stations with capacity between 5000 and 10000?
+2025-11-17 16:46:41,607 - INFO - Predicted SQL: SELECT location, name FROM station WHERE capacity BETWEEN 5000 AND 10000
+2025-11-17 16:46:41,612 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:46:44,100 - INFO - Question: What are the locations and names of all stations with capacity between 5000 and 10000?
+2025-11-17 16:46:44,101 - INFO - Predicted SQL: SELECT location, name FROM stations WHERE capacity BETWEEN 5000 AND 10000
+2025-11-17 16:46:44,106 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:46:44,687 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:46:50,151 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 16:47:00,818 - WARNING - Rate limit exceeded for gemini. Retrying in 20 seconds...
+2025-11-17 16:47:22,790 - INFO - Question: What are the locations and names of all stations with capacity between 5000 and 10000?
+2025-11-17 16:47:22,791 - INFO - Predicted SQL: SELECT location, name FROM stations WHERE capacity BETWEEN 5000 AND 10000
+2025-11-17 16:47:22,796 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:47:26,265 - INFO - Question: What are the locations and names of all stations with capacity between 5000 and 10000?
+2025-11-17 16:47:26,267 - INFO - Predicted SQL: SELECT location, name FROM stations WHERE capacity BETWEEN 5000 AND 10000
+2025-11-17 16:47:26,316 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:47:27,712 - INFO - Question: What is the maximum capacity and the average of all stadiums ?
+2025-11-17 16:47:27,713 - INFO - Predicted SQL: SELECT MAX(capacity), AVG(capacity) FROM stadium
+2025-11-17 16:47:27,716 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:47:29,507 - INFO - Question: What is the maximum capacity and the average of all stadiums ?
+2025-11-17 16:47:29,508 - INFO - Predicted SQL: SELECT MAX(capacity), AVG(capacity) FROM stadium
+2025-11-17 16:47:29,512 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:47:31,895 - INFO - Question: What is the maximum capacity and the average of all stadiums ?
+2025-11-17 16:47:31,896 - INFO - Predicted SQL: SELECT MAX(capacity) AS max_capacity, AVG(capacity) AS avg_capacity FROM stadiums
+2025-11-17 16:47:31,901 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:47:37,997 - INFO - Question: What is the maximum capacity and the average of all stadiums ?
+2025-11-17 16:47:37,999 - INFO - Predicted SQL: SELECT MAX(capacity), AVG(capacity) FROM stadium
+2025-11-17 16:47:38,003 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:47:51,749 - INFO - Question: What is the maximum capacity and the average of all stadiums ?
+2025-11-17 16:47:51,750 - INFO - Predicted SQL: SELECT MAX(capacity), AVG(capacity) FROM stadium" }
+2025-11-17 16:47:51,788 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:47:53,462 - INFO - Question: What is the average and maximum capacities for all stadiums ?
+2025-11-17 16:47:53,464 - INFO - Predicted SQL: SELECT AVG(capacity), MAX(capacity) FROM stadium
+2025-11-17 16:47:53,468 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:47:55,034 - INFO - Question: What is the average and maximum capacities for all stadiums ?
+2025-11-17 16:47:55,036 - INFO - Predicted SQL: SELECT AVG(capacity), MAX(capacity) FROM stadium
+2025-11-17 16:47:55,040 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:47:59,447 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:48:05,103 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 16:48:18,526 - INFO - Question: What is the average and maximum capacities for all stadiums ?
+2025-11-17 16:48:18,527 - INFO - Predicted SQL: SELECT AVG(capacity) AS average_capacity, MAX(capacity) AS maximum_capacity FROM stadiums
+2025-11-17 16:48:18,532 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:48:21,228 - INFO - Question: What is the average and maximum capacities for all stadiums ?
+2025-11-17 16:48:21,229 - INFO - Predicted SQL: SELECT AVG(capacity) AS average_capacity, MAX(capacity) AS maximum_capacity FROM stadiums
+2025-11-17 16:48:21,234 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:48:26,428 - INFO - Question: What is the average and maximum capacities for all stadiums ?
+2025-11-17 16:48:26,429 - INFO - Predicted SQL: SELECT AVG(Capacity), MAX(Capacity) FROM stadium
+2025-11-17 16:48:26,475 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:48:29,836 - INFO - Question: What is the name and capacity for the stadium with highest average attendance?
+2025-11-17 16:48:29,837 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 INNER JOIN match AS T2 ON T1.sid = T2.stadium_id GROUP BY T1.sid ORDER BY AVG(T2.attendance) DESC LIMIT 1
+2025-11-17 16:48:29,842 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:48:36,159 - INFO - Question: What is the name and capacity for the stadium with highest average attendance?
+2025-11-17 16:48:36,160 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 INNER JOIN match AS T2 ON T1.stadium_id = T2.stadium_id GROUP BY T1.stadium_id ORDER BY AVG(T2.attendance) DESC LIMIT 1
+2025-11-17 16:48:36,165 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:48:45,908 - INFO - Question: What is the name and capacity for the stadium with highest average attendance?
+2025-11-17 16:48:45,910 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 INNER JOIN game AS T2 ON T1.stadium_id = T2.stadium_id GROUP BY T1.stadium_id ORDER BY AVG(T2.attendance) DESC LIMIT 1
+2025-11-17 16:48:45,915 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:48:52,147 - INFO - Question: What is the name and capacity for the stadium with highest average attendance?
+2025-11-17 16:48:52,148 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 JOIN ( SELECT stadium_id, AVG(attendance) AS avg_attendance FROM match GROUP BY stadium_id ORDER BY avg_attendance DESC LIMIT 1 ) AS T2 ON T1.stadium_id = T2.stadium_id
+2025-11-17 16:48:52,153 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:48:58,351 - INFO - Question: What is the name and capacity for the stadium with highest average attendance?
+2025-11-17 16:48:58,352 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 INNER JOIN match AS T2 ON T1.staid = T2.stadid GROUP BY T1.staid ORDER BY AVG(T2.attendance) DESC LIMIT 1
+2025-11-17 16:48:58,390 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:48:58,963 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:49:04,485 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 16:49:15,130 - WARNING - Rate limit exceeded for gemini. Retrying in 20 seconds...
+2025-11-17 16:49:37,468 - INFO - Question: What is the name and capacity for the stadium with the highest average attendance?
+2025-11-17 16:49:37,469 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 INNER JOIN performance AS T2 ON T1.stadium_id = T2.stadium_id GROUP BY T1.stadium_id ORDER BY AVG(T2.attendance) DESC LIMIT 1
+2025-11-17 16:49:37,474 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:49:41,767 - INFO - Question: What is the name and capacity for the stadium with the highest average attendance?
+2025-11-17 16:49:41,768 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 INNER JOIN match AS T2 ON T1.stad_id = T2.stadium_id GROUP BY T1.name, T1.capacity ORDER BY AVG(T2.attendance) DESC LIMIT 1
+2025-11-17 16:49:41,773 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:49:54,307 - INFO - Question: What is the name and capacity for the stadium with the highest average attendance?
+2025-11-17 16:49:54,308 - INFO - Predicted SQL: SELECT S.name, S.capacity FROM stadiums AS S JOIN ( SELECT stadium_id, AVG(attendance_count) AS avg_attendance FROM attendance GROUP BY stadium_id ORDER BY avg_attendance DESC LIMIT 1 ) AS TopStadium ON S.stadium_id = TopStadium.stadium_id
+2025-11-17 16:49:54,313 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:49:57,577 - INFO - Question: What is the name and capacity for the stadium with the highest average attendance?
+2025-11-17 16:49:57,578 - INFO - Predicted SQL: SELECT S.name, S.capacity FROM stadiums AS S JOIN matches AS M ON S.stadium_id = M.stadium_id GROUP BY S.stadium_id, S.name, S.capacity ORDER BY AVG(M.attendance) DESC LIMIT 1
+2025-11-17 16:49:57,584 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:50:05,716 - INFO - Question: What is the name and capacity for the stadium with the highest average attendance?
+2025-11-17 16:50:05,717 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 INNER JOIN match AS T2 ON T1.stadium_id = T2.stadium_id GROUP BY T1.stadium_id ORDER BY AVG(T2.attendance) DESC LIMIT 1
+2025-11-17 16:50:05,760 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:50:10,719 - INFO - Question: How many concerts are there in year 2014 or 2015?
+2025-11-17 16:50:10,720 - INFO - Predicted SQL: SELECT count(*) FROM concert WHERE year = 2014 OR year = 2015
+2025-11-17 16:50:10,731 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:50:12,964 - INFO - Question: How many concerts are there in year 2014 or 2015?
+2025-11-17 16:50:12,965 - INFO - Predicted SQL: SELECT COUNT(*) FROM concert WHERE strftime('%Y', Date) = '2014' OR strftime('%Y', Date) = '2015'
+2025-11-17 16:50:12,970 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:50:13,570 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:50:32,211 - INFO - Question: How many concerts are there in year 2014 or 2015?
+2025-11-17 16:50:32,212 - INFO - Predicted SQL: SELECT COUNT(*) FROM concert WHERE STRFTIME('%Y', concert_date) IN ('2014', '2015')
+2025-11-17 16:50:32,217 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:50:33,988 - INFO - Question: How many concerts are there in year 2014 or 2015?
+2025-11-17 16:50:33,990 - INFO - Predicted SQL: SELECT count(*) FROM concert WHERE year = 2014 OR year = 2015
+2025-11-17 16:50:33,994 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:50:38,842 - INFO - Question: How many concerts are there in year 2014 or 2015?
+2025-11-17 16:50:38,843 - INFO - Predicted SQL: SELECT COUNT(*) FROM concert WHERE YEAR = 2014 OR YEAR = 2015
+2025-11-17 16:50:38,876 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:50:40,669 - INFO - Question: How many concerts occurred in 2014 or 2015?
+2025-11-17 16:50:40,669 - INFO - Predicted SQL: SELECT COUNT(*) FROM concert WHERE year = 2014 OR year = 2015
+2025-11-17 16:50:40,675 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:50:42,506 - INFO - Question: How many concerts occurred in 2014 or 2015?
+2025-11-17 16:50:42,507 - INFO - Predicted SQL: SELECT count(*) FROM concert WHERE year = 2014 OR year = 2015
+2025-11-17 16:50:42,511 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:50:47,883 - INFO - Question: How many concerts occurred in 2014 or 2015?
+2025-11-17 16:50:47,884 - INFO - Predicted SQL: SELECT count(*) FROM concert WHERE year = 2014 OR year = 2015
+2025-11-17 16:50:47,889 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:50:54,960 - INFO - Question: How many concerts occurred in 2014 or 2015?
+2025-11-17 16:50:54,961 - INFO - Predicted SQL: SELECT COUNT(*) FROM concert WHERE year IN (2014, 2015)
+2025-11-17 16:50:54,967 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:51:01,629 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:51:07,103 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 16:51:21,872 - INFO - Question: How many concerts occurred in 2014 or 2015?
+2025-11-17 16:51:21,874 - INFO - Predicted SQL: SELECT COUNT(*) FROM concert WHERE year = 2014 OR year = 2015
+2025-11-17 16:51:21,904 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:51:27,081 - INFO - Question: Show the stadium name and the number of concerts in each stadium.
+2025-11-17 16:51:27,082 - INFO - Predicted SQL: SELECT T1.name, COUNT(T2.cID) FROM stadium AS T1 JOIN concert AS T2 ON T1.sID = T2.sID GROUP BY T1.name
+2025-11-17 16:51:27,094 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:51:29,573 - INFO - Question: Show the stadium name and the number of concerts in each stadium.
+2025-11-17 16:51:29,574 - INFO - Predicted SQL: SELECT S.sName, COUNT(C.cID) AS NumberOfConcerts FROM stadium AS S JOIN concert AS C ON S.sID = C.sID GROUP BY S.sName
+2025-11-17 16:51:29,579 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:51:52,196 - INFO - Question: Show the stadium name and the number of concerts in each stadium.
+2025-11-17 16:51:52,198 - INFO - Predicted SQL: SELECT T1.name AS stadium_name, COUNT(T2.cID) AS number_of_concerts FROM stadium AS T1 LEFT JOIN concert AS T2 ON T1.sID = T2.sID GROUP BY T1.sID, T1.name
+2025-11-17 16:51:52,203 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:52:04,193 - INFO - Question: Show the stadium name and the number of concerts in each stadium.
+2025-11-17 16:52:04,193 - INFO - Predicted SQL: SELECT S.name AS stadium_name, COUNT(C.concert_id) AS number_of_concerts FROM stadium AS S LEFT JOIN concert AS C ON S.stadium_id = C.stadium_id GROUP BY S.stadium_id, S.name ORDER BY S.name CREATE TABLE student ( student_id INTEGER PRIMARY KEY, student_name TEXT NOT NULL ) CREATE TABLE course ( course_id INTEGER PRIMARY KEY, course_name TEXT NOT NULL ) CREATE TABLE enrollment ( student_id INTEGER, course_id INTEGER, PRIMARY KEY (student_id, course_id), FOREIGN KEY (student_id) REFERENCES student(student_id), FOREIGN KEY (course_id) REFERENCES course(course_id) ) SELECT T1.student_name FROM student AS T1 INNER JOIN enrollment AS T2 ON T1.student_id = T2.student_id INNER JOIN course AS T3 ON T2.course_id = T3.course_id WHERE T3.course_name = 'Math' SELECT T1.student_name FROM student AS T1 INNER JOIN enrollment AS T2 ON T1.student_id = T2.student_id INNER JOIN course AS T3 ON T2.course_id = T3.course_id WHERE T3.course_name = 'Physics' SELECT T1.student_name FROM student AS T1 INNER JOIN enrollment AS T2 ON T1.student_id = T2.student_id INNER JOIN course AS T3 ON T2.course_id = T3.course_id WHERE T3.course_name = 'Math' INTERSECT SELECT T1.student_name FROM student AS T1 INNER JOIN enrollment AS T2 ON T1.student_id = T2.student_id INNER JOIN course AS T3 ON T2.course_id = T3.course_id WHERE T3.course_name = 'Physics'
+2025-11-17 16:52:04,193 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:52:14,205 - INFO - Question: Show the stadium name and the number of concerts in each stadium.
+2025-11-17 16:52:14,205 - INFO - Predicted SQL: SELECT T1.sName, COUNT(T2.cid) FROM stadium AS T1 LEFT JOIN concert AS T2 ON T1.sid = T2.sid GROUP BY T1.sName
+2025-11-17 16:52:14,275 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:52:16,146 - INFO - Question: For each stadium, how many concerts play there?
+2025-11-17 16:52:16,146 - INFO - Predicted SQL: SELECT T1.sname, COUNT(T2.sid) FROM stadium AS T1 INNER JOIN concert AS T2 ON T1.sid = T2.sid GROUP BY T1.sname
+2025-11-17 16:52:16,146 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:52:18,317 - INFO - Question: For each stadium, how many concerts play there?
+2025-11-17 16:52:18,317 - INFO - Predicted SQL: SELECT T1.Name, COUNT(T2.Concert_ID) FROM stadium AS T1 JOIN concert AS T2 ON T1.Stadium_ID = T2.Stadium_ID GROUP BY T1.Stadium_ID
+2025-11-17 16:52:18,332 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:52:37,888 - INFO - Question: For each stadium, how many concerts play there?
+2025-11-17 16:52:37,888 - INFO - Predicted SQL: ite CREATE TABLE stadiums (   stadium_id INTEGER PRIMARY KEY,   name TEXT NOT NULL,   city TEXT,   capacity INTEGER )  CREATE TABLE concerts (   concert_id INTEGER PRIMARY KEY,   name TEXT NOT NULL,   stadium_id INTEGER NOT NULL,   date DATE,   FOREIGN KEY (stadium_id) REFERENCES stadiums(stadium_id) )  -- Example Data for testing (optional) INSERT INTO stadiums (stadium_id, name, city, capacity) VALUES (1, 'Big Arena', 'Metropolis', 50000), (2, 'City Bowl', 'Gotham', 70000), (3, 'Green Park', 'Star City', 20000), (4, 'Small Hall', 'Central City', 5000)  INSERT INTO concerts (concert_id, name, stadium_id, date) VALUES (101, 'Rock Fest', 1, '2023-07-15'), (102, 'Pop Extravaganza', 1, '2023-08-01'), (103, 'Classical Evening', 3, '2023-09-20'), (104, 'Jazz Night', 1, '2023-10-10'), (105, 'Country Jamboree', 2, '2023-11-05')
+2025-11-17 16:52:37,904 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:52:49,043 - INFO - Question: For each stadium, how many concerts play there?
+2025-11-17 16:52:49,059 - INFO - Predicted SQL: SELECT T1.name AS stadium_name, COUNT(T2.cid) AS number_of_concerts FROM stadium AS T1 LEFT JOIN concert AS T2 ON T1.sid = T2.sid GROUP BY T1.sid, T1.name ORDER BY T1.name
+2025-11-17 16:52:49,061 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:52:55,485 - INFO - Question: For each stadium, how many concerts play there?
+2025-11-17 16:52:55,486 - INFO - Predicted SQL: SELECT T1.sname, COUNT(T2.cid) FROM stadium AS T1 INNER JOIN concert AS T2 ON T1.sid = T2.stadium_id GROUP BY T1.sname
+2025-11-17 16:52:55,515 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:52:59,749 - INFO - Question: Show the stadium name and capacity with most number of concerts in year 2014 or after.
+2025-11-17 16:52:59,749 - INFO - Predicted SQL: SELECT T1.sname, T1.capacity FROM stadium AS T1 INNER JOIN concert AS T2 ON T1.stid = T2.stid WHERE STRFTIME('%Y', T2.cdate) >= '2014' GROUP BY T1.sname, T1.capacity ORDER BY COUNT(T2.cid) DESC LIMIT 1
+2025-11-17 16:52:59,749 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:53:02,990 - INFO - Question: Show the stadium name and capacity with most number of concerts in year 2014 or after.
+2025-11-17 16:53:02,990 - INFO - Predicted SQL: SELECT T1.s_name, T1.s_capacity FROM stadium AS T1 INNER JOIN concert AS T2 ON T1.s_id = T2.s_id WHERE T2.c_year >= 2014 GROUP BY T1.s_id ORDER BY COUNT(T2.c_id) DESC LIMIT 1
+2025-11-17 16:53:02,990 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:53:03,473 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:53:08,928 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 16:53:24,661 - INFO - Question: Show the stadium name and capacity with most number of concerts in year 2014 or after.
+2025-11-17 16:53:24,661 - INFO - Predicted SQL: SELECT T2.Name, T2.Capacity FROM concert AS T1 INNER JOIN stadium AS T2 ON T1.Stadium_ID = T2.Stadium_ID WHERE STRFTIME('%Y', T1.Date) >= '2014' GROUP BY T2.Stadium_ID ORDER BY COUNT(T1.Concert_ID) DESC LIMIT 1
+2025-11-17 16:53:24,676 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:53:32,118 - INFO - Question: Show the stadium name and capacity with most number of concerts in year 2014 or after.
+2025-11-17 16:53:32,118 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 INNER JOIN ( SELECT s_id FROM concert WHERE CAST(SUBSTR(date, 1, 4) AS INTEGER) >= 2014 GROUP BY s_id ORDER BY COUNT(c_id) DESC LIMIT 1 ) AS T2 ON T1.s_id = T2.s_id
+2025-11-17 16:53:32,118 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:53:42,802 - INFO - Question: Show the stadium name and capacity with most number of concerts in year 2014 or after.
+2025-11-17 16:53:42,802 - INFO - Predicted SQL: SELECT T1.sName, T1.capacity FROM Stadium AS T1 INNER JOIN Concert AS T2 ON T1.sID = T2.sID WHERE T2.cDate >= '2014-01-01' -- Assuming cDate is in YYYY-MM-DD format or compatible GROUP BY T1.sID ORDER BY COUNT(T2.cID) DESC LIMIT 1
+2025-11-17 16:53:42,849 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:53:45,655 - INFO - Question: What is the name and capacity of the stadium with the most concerts after 2013 ?
+2025-11-17 16:53:45,655 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 INNER JOIN concert AS T2 ON T1.stadium_id = T2.stadium_id WHERE T2.year > 2013 GROUP BY T1.stadium_id ORDER BY COUNT(T2.concert_id) DESC LIMIT 1
+2025-11-17 16:53:45,671 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:53:51,303 - INFO - Question: What is the name and capacity of the stadium with the most concerts after 2013 ?
+2025-11-17 16:53:51,303 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 INNER JOIN ( SELECT stadium_ID, COUNT(*) AS concert_count FROM concert WHERE date > '2013-12-31' GROUP BY stadium_ID ORDER BY concert_count DESC LIMIT 1 ) AS T2 ON T1.sID = T2.stadium_ID
+2025-11-17 16:53:51,318 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:53:56,660 - INFO - Question: What is the name and capacity of the stadium with the most concerts after 2013 ?
+2025-11-17 16:53:56,660 - INFO - Predicted SQL: SELECT T1.sname, T1.capacity FROM stadium AS T1 INNER JOIN concert AS T2 ON T1.sid = T2.sid WHERE T2.year > 2013 GROUP BY T1.sid ORDER BY COUNT(T2.cid) DESC LIMIT 1
+2025-11-17 16:53:56,660 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:54:04,444 - INFO - Question: What is the name and capacity of the stadium with the most concerts after 2013 ?
+2025-11-17 16:54:04,444 - INFO - Predicted SQL: SELECT T1.name, T1.capacity FROM stadium AS T1 JOIN (SELECT sID, COUNT(*) AS concert_count FROM concert WHERE date > '2013-12-31' GROUP BY sID ORDER BY concert_count DESC LIMIT 1) AS T2 ON T1.sID = T2.sID
+2025-11-17 16:54:04,444 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:54:08,160 - INFO - Question: What is the name and capacity of the stadium with the most concerts after 2013 ?
+2025-11-17 16:54:08,160 - INFO - Predicted SQL: SELECT T1.Name, T1.Capacity FROM stadium AS T1 JOIN concert AS T2 ON T1.Sid = T2.Sid WHERE T2.Date > '2013-12-31' GROUP BY T1.Sid ORDER BY COUNT(T2.Cid) DESC LIMIT 1
+2025-11-17 16:54:08,218 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:54:11,443 - INFO - Question: Which year has most number of concerts?
+2025-11-17 16:54:11,443 - INFO - Predicted SQL: SELECT STRFTIME('%Y', date) AS concert_year FROM concert GROUP BY concert_year ORDER BY COUNT(*) DESC LIMIT 1
+2025-11-17 16:54:11,458 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:54:14,817 - INFO - Question: Which year has most number of concerts?
+2025-11-17 16:54:14,817 - INFO - Predicted SQL: SELECT STRFTIME('%Y', Start_date) AS concert_year, COUNT(concertid) AS num_concerts FROM concert GROUP BY concert_year ORDER BY num_concerts DESC LIMIT 1
+2025-11-17 16:54:14,817 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:54:15,293 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:54:36,162 - INFO - Question: Which year has most number of concerts?
+2025-11-17 16:54:36,177 - INFO - Predicted SQL: CREATE TABLE concerts (     concert_id INTEGER PRIMARY KEY,     concert_name TEXT NOT NULL,     concert_date TEXT NOT NULL -- Stores dates in 'YYYY-MM-DD' format     -- Other columns like venue_id, artist_id could be here but are not needed for this query )
+2025-11-17 16:54:36,177 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:54:46,216 - INFO - Question: Which year has most number of concerts?
+2025-11-17 16:54:46,216 - INFO - Predicted SQL: SELECT year FROM concerts GROUP BY year ORDER BY COUNT(*) DESC LIMIT 1
+2025-11-17 16:54:46,216 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:54:55,673 - INFO - Question: Which year has most number of concerts?
+2025-11-17 16:54:55,673 - INFO - Predicted SQL: SELECT year FROM concerts GROUP BY year ORDER BY COUNT(*) DESC LIMIT 1
+2025-11-17 16:54:55,715 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:55:07,314 - INFO - Question: What is the year that had the most concerts?
+2025-11-17 16:55:07,314 - INFO - Predicted SQL: SELECT YEAR FROM concert GROUP BY YEAR ORDER BY COUNT(c_id) DESC LIMIT 1
+2025-11-17 16:55:07,330 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:55:11,090 - INFO - Question: What is the year that had the most concerts?
+2025-11-17 16:55:11,090 - INFO - Predicted SQL: SELECT STRFTIME('%Y', date) AS concert_year FROM concerts GROUP BY concert_year ORDER BY COUNT(*) DESC LIMIT 1
+2025-11-17 16:55:11,090 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:55:19,787 - INFO - Question: What is the year that had the most concerts?
+2025-11-17 16:55:19,803 - INFO - Predicted SQL: SELECT STRFTIME('%Y', date) AS concert_year FROM concerts GROUP BY concert_year ORDER BY COUNT(concert_id) DESC LIMIT 1
+2025-11-17 16:55:19,803 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:55:26,306 - INFO - Question: What is the year that had the most concerts?
+2025-11-17 16:55:26,322 - INFO - Predicted SQL: SELECT STRFTIME('%Y', T1.concert_date) FROM concerts AS T1 GROUP BY STRFTIME('%Y', T1.concert_date) ORDER BY COUNT(T1.concert_id) DESC LIMIT 1
+2025-11-17 16:55:26,322 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:55:34,933 - INFO - Question: What is the year that had the most concerts?
+2025-11-17 16:55:34,933 - INFO - Predicted SQL: SELECT strftime('%Y', date) AS concert_year FROM concerts GROUP BY concert_year ORDER BY COUNT(*) DESC LIMIT 1
+2025-11-17 16:55:34,987 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:55:38,809 - INFO - Question: Show the stadium names without any concert.
+2025-11-17 16:55:38,809 - INFO - Predicted SQL: SELECT sName FROM stadium EXCEPT SELECT T1.sName FROM stadium AS T1 JOIN concert AS T2 ON T1.sID  =  T2.sID
+2025-11-17 16:55:38,809 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:55:42,981 - INFO - Question: Show the stadium names without any concert.
+2025-11-17 16:55:42,996 - INFO - Predicted SQL: SELECT sname FROM stadium WHERE stadium_ID NOT IN ( SELECT stadium_ID FROM concert )
+2025-11-17 16:55:42,996 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:55:49,287 - INFO - Question: Show the stadium names without any concert.
+2025-11-17 16:55:49,287 - INFO - Predicted SQL: SELECT T1.stadium_name FROM stadiums AS T1 LEFT JOIN concerts AS T2 ON T1.stadium_id = T2.stadium_id WHERE T2.concert_id IS NULL
+2025-11-17 16:55:49,287 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:55:56,561 - INFO - Question: Show the stadium names without any concert.
+2025-11-17 16:55:56,570 - INFO - Predicted SQL: SELECT T1.name FROM stadium AS T1 LEFT JOIN concert AS T2 ON T1.id = T2.stadium_id WHERE T2.id IS NULL
+2025-11-17 16:55:56,578 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:56:02,830 - INFO - Question: Show the stadium names without any concert.
+2025-11-17 16:56:02,830 - INFO - Predicted SQL: SELECT sName FROM stadium WHERE sID NOT IN ( SELECT stadium_id FROM concert )
+2025-11-17 16:56:02,880 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:56:05,720 - INFO - Question: What are the names of the stadiums without any concerts?
+2025-11-17 16:56:05,721 - INFO - Predicted SQL: SELECT SName FROM stadium WHERE Sid NOT IN (SELECT Sid FROM concert)
+2025-11-17 16:56:05,723 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:56:10,821 - INFO - Question: What are the names of the stadiums without any concerts?
+2025-11-17 16:56:10,821 - INFO - Predicted SQL: SELECT Name FROM stadium EXCEPT SELECT T1.Name FROM stadium AS T1 JOIN concert AS T2 ON T1.stadium_id = T2.stadium_id
+2025-11-17 16:56:10,821 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:56:15,950 - INFO - Question: What are the names of the stadiums without any concerts?
+2025-11-17 16:56:15,950 - INFO - Predicted SQL: SELECT name FROM stadium EXCEPT SELECT T1.name FROM stadium AS T1 JOIN concert AS T2 ON T1.stadium_id = T2.stadium_id
+2025-11-17 16:56:15,950 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:56:20,281 - INFO - Question: What are the names of the stadiums without any concerts?
+2025-11-17 16:56:20,281 - INFO - Predicted SQL: SELECT T1.name FROM stadium AS T1 EXCEPT SELECT T1.name FROM stadium AS T1 JOIN concert AS T2 ON T1.stadium_id = T2.stadium_id
+2025-11-17 16:56:20,281 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:56:25,875 - INFO - Question: What are the names of the stadiums without any concerts?
+2025-11-17 16:56:25,875 - INFO - Predicted SQL: SELECT name FROM stadium WHERE s_id NOT IN (SELECT stadium_id FROM concert)
+2025-11-17 16:56:25,914 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:56:30,908 - INFO - Question: Show countries where a singer above age 40 and a singer below 30 are from.
+2025-11-17 16:56:30,910 - INFO - Predicted SQL: SELECT T2.cname FROM singer AS T1 INNER JOIN country AS T2 ON T1.country = T2.cid GROUP BY T2.cname HAVING SUM(CASE WHEN T1.age > 40 THEN 1 ELSE 0 END) >= 1 AND SUM(CASE WHEN T1.age < 30 THEN 1 ELSE 0 END) >= 1
+2025-11-17 16:56:31,045 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:56:34,027 - INFO - Question: Show countries where a singer above age 40 and a singer below 30 are from.
+2025-11-17 16:56:34,029 - INFO - Predicted SQL: SELECT T1.country FROM singer AS T1 WHERE T1.age > 40 INTERSECT SELECT T2.country FROM singer AS T2 WHERE T2.age < 30
+2025-11-17 16:56:34,033 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:56:44,095 - INFO - Question: Show countries where a singer above age 40 and a singer below 30 are from.
+2025-11-17 16:56:44,095 - INFO - Predicted SQL: SELECT DISTINCT T1.country FROM singer AS T1 WHERE T1.age > 40 INTERSECT SELECT DISTINCT T2.country FROM singer AS T2 WHERE T2.age < 30
+2025-11-17 16:56:44,097 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:56:51,593 - INFO - Question: Show countries where a singer above age 40 and a singer below 30 are from.
+2025-11-17 16:56:51,593 - INFO - Predicted SQL: SELECT country FROM singer WHERE age > 40 INTERSECT SELECT country FROM singer WHERE age < 30
+2025-11-17 16:56:51,611 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:56:59,963 - INFO - Question: Show countries where a singer above age 40 and a singer below 30 are from.
+2025-11-17 16:56:59,964 - INFO - Predicted SQL: SELECT Country FROM singer WHERE age > 40 INTERSECT SELECT Country FROM singer WHERE age < 30
+2025-11-17 16:56:59,988 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:57:02,224 - INFO - Question: Show names for all stadiums except for stadiums having a concert in year 2014.
+2025-11-17 16:57:02,226 - INFO - Predicted SQL: SELECT name FROM stadium EXCEPT SELECT T1.name FROM stadium AS T1 JOIN concert AS T2 ON T1.stadium_id = T2.stadium_id WHERE T2.year = 2014
+2025-11-17 16:57:02,226 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:57:02,682 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:57:08,320 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 16:57:24,903 - INFO - Question: Show names for all stadiums except for stadiums having a concert in year 2014.
+2025-11-17 16:57:24,903 - INFO - Predicted SQL: SELECT sName FROM stadium WHERE sID NOT IN ( SELECT sID FROM concert WHERE year = 2014 )
+2025-11-17 16:57:24,903 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:57:30,540 - INFO - Question: Show names for all stadiums except for stadiums having a concert in year 2014.
+2025-11-17 16:57:30,552 - INFO - Predicted SQL: SELECT sName FROM stadium EXCEPT SELECT T1.sName FROM stadium AS T1 INNER JOIN concert AS T2 ON T1.sID = T2.sID WHERE T2.year = 2014
+2025-11-17 16:57:30,563 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:57:49,823 - INFO - Question: Show names for all stadiums except for stadiums having a concert in year 2014.
+2025-11-17 16:57:49,823 - INFO - Predicted SQL: SELECT T1.sName FROM stadium AS T1 WHERE T1.sID NOT IN ( SELECT T2.sID FROM concert AS T2 WHERE T2.year = 2014 )
+2025-11-17 16:57:49,823 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:57:54,495 - INFO - Question: Show names for all stadiums except for stadiums having a concert in year 2014.
+2025-11-17 16:57:54,495 - INFO - Predicted SQL: SELECT T1.sname FROM stadium AS T1 WHERE T1.stadium_id NOT IN ( SELECT stadium_id FROM concert WHERE year = 2014 )
+2025-11-17 16:57:54,548 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:57:56,913 - INFO - Question: What are the names of all stadiums that did not have a concert in 2014?
+2025-11-17 16:57:56,913 - INFO - Predicted SQL: SELECT sName FROM stadium WHERE sID NOT IN ( SELECT sID FROM concert WHERE strftime('%Y', cDate) = '2014' )
+2025-11-17 16:57:56,913 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:58:03,464 - INFO - Question: What are the names of all stadiums that did not have a concert in 2014?
+2025-11-17 16:58:03,464 - INFO - Predicted SQL: SELECT sName FROM stadium WHERE sID NOT IN ( SELECT sID FROM concert WHERE STRFTIME('%Y', date) = '2014' )
+2025-11-17 16:58:03,464 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:58:10,995 - INFO - Question: What are the names of all stadiums that did not have a concert in 2014?
+2025-11-17 16:58:10,995 - INFO - Predicted SQL: SELECT T1.sname FROM Stadium AS T1 WHERE T1.sid NOT IN ( SELECT T2.sid FROM Concert AS T2 WHERE strftime('%Y', T2.cdate) = '2014' )
+2025-11-17 16:58:10,997 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:58:13,815 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 16:58:31,654 - INFO - Question: What are the names of all stadiums that did not have a concert in 2014?
+2025-11-17 16:58:31,655 - INFO - Predicted SQL: SELECT T1.name FROM stadium AS T1 WHERE T1.stadium_id NOT IN ( SELECT T2.stadium_id FROM concert AS T2 WHERE strftime('%Y', T2.date) = '2014' )
+2025-11-17 16:58:31,660 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:58:40,352 - INFO - Question: What are the names of all stadiums that did not have a concert in 2014?
+2025-11-17 16:58:40,352 - INFO - Predicted SQL: SELECT sName FROM stadium WHERE sID NOT IN ( SELECT sID FROM concert WHERE strftime('%Y', cDate) = '2014' )
+2025-11-17 16:58:40,401 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:58:42,601 - INFO - Question: Show the name and theme for all concerts and the number of singers in each concert.
+2025-11-17 16:58:42,601 - INFO - Predicted SQL: SELECT c.name, c.theme, COUNT(cs.singer_id) AS number_of_singers FROM concerts AS c LEFT JOIN concert_singers AS cs ON c.concert_id = cs.concert_id GROUP BY c.concert_id, c.name, c.theme
+2025-11-17 16:58:42,617 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:58:48,024 - INFO - Question: Show the name and theme for all concerts and the number of singers in each concert.
+2025-11-17 16:58:48,024 - INFO - Predicted SQL: SELECT T1.name, T1.theme, COUNT(T2.id) AS num_singers FROM concert AS T1 JOIN singer AS T2 ON T1.id = T2.concert_id GROUP BY T1.id, T1.name, T1.theme
+2025-11-17 16:58:48,024 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:58:55,889 - INFO - Question: Show the name and theme for all concerts and the number of singers in each concert.
+2025-11-17 16:58:55,890 - INFO - Predicted SQL: SELECT C.name, C.theme, COUNT(CS.singer_id) AS number_of_singers FROM Concerts AS C LEFT JOIN ConcertSingers AS CS ON C.concert_id = CS.concert_id GROUP BY C.concert_id, C.name, C.theme
+2025-11-17 16:58:55,894 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:59:05,335 - INFO - Question: Show the name and theme for all concerts and the number of singers in each concert.
+2025-11-17 16:59:05,335 - INFO - Predicted SQL: SELECT c.name, c.theme, COUNT(s.singer_id) AS number_of_singers FROM concerts AS c LEFT JOIN singers AS s ON c.concert_id = s.concert_id GROUP BY c.concert_id, c.name, c.theme
+2025-11-17 16:59:05,350 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 16:59:28,058 - INFO - Question: Show the name and theme for all concerts and the number of singers in each concert.
+2025-11-17 16:59:28,058 - INFO - Predicted SQL: SELECT T1.name, T1.theme, COUNT(T2.singer_id) AS number_of_singers FROM Concerts AS T1 LEFT JOIN ConcertSingers AS T2 ON T1.id = T2.concert_id GROUP BY T1.id, T1.name, T1.theme
+2025-11-17 16:59:28,075 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 16:59:31,809 - INFO - Question: What are the names , themes , and number of singers for every concert ?
+2025-11-17 16:59:31,824 - INFO - Predicted SQL: SELECT name, theme, num_singers FROM concert
+2025-11-17 16:59:31,826 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 16:59:38,187 - INFO - Question: What are the names , themes , and number of singers for every concert ?
+2025-11-17 16:59:38,190 - INFO - Predicted SQL: SELECT name, theme, num_singers FROM concert
+2025-11-17 16:59:38,197 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 16:59:52,027 - INFO - Question: What are the names , themes , and number of singers for every concert ?
+2025-11-17 16:59:52,027 - INFO - Predicted SQL: -- Table: concerts -- concert_id (INTEGER PRIMARY KEY) -- name (TEXT) -- theme (TEXT)  -- Table: singers -- singer_id (INTEGER PRIMARY KEY) -- name (TEXT) -- concert_id (INTEGER, FOREIGN KEY REFERENCES concerts(concert_id))
+2025-11-17 16:59:52,027 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 16:59:57,766 - INFO - Question: What are the names , themes , and number of singers for every concert ?
+2025-11-17 16:59:57,767 - INFO - Predicted SQL: SELECT C.name, C.theme, COUNT(CS.singer_id) AS number_of_singers FROM Concerts AS C LEFT JOIN ConcertSingers AS CS ON C.id = CS.concert_id GROUP BY C.id, C.name, C.theme
+2025-11-17 16:59:57,770 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 17:00:11,887 - INFO - Question: What are the names , themes , and number of singers for every concert ?
+2025-11-17 17:00:11,888 - INFO - Predicted SQL: SELECT C.name, C.theme, COUNT(CS.singer_id) AS number_of_singers FROM Concerts AS C LEFT JOIN Concert_Singers AS CS ON C.concert_id = CS.concert_id GROUP BY C.concert_id, C.name, C.theme ORDER BY C.name
+2025-11-17 17:00:11,910 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 17:00:14,130 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 17:00:21,846 - INFO - Question: List singer names and number of concerts for each singer.
+2025-11-17 17:00:21,847 - INFO - Predicted SQL: SELECT T1.name, COUNT(T2.sid) FROM singer AS T1 JOIN concert AS T2 ON T1.singerid = T2.sid GROUP BY T1.name
+2025-11-17 17:00:21,847 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 17:00:29,126 - INFO - Question: List singer names and number of concerts for each singer.
+2025-11-17 17:00:29,128 - INFO - Predicted SQL: SELECT T1.sName, COUNT(T2.cID) AS NumberOfConcerts FROM singer AS T1 JOIN concert AS T2 ON T1.sID = T2.sID GROUP BY T1.sName
+2025-11-17 17:00:29,130 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 17:00:32,636 - INFO - Question: List singer names and number of concerts for each singer.
+2025-11-17 17:00:32,637 - INFO - Predicted SQL: SELECT T1.Name, COUNT(T2.concertid) FROM singer AS T1 JOIN concert AS T2 ON T1.singerid = T2.singerid GROUP BY T1.Name
+2025-11-17 17:00:32,642 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 17:00:45,330 - INFO - Question: List singer names and number of concerts for each singer.
+2025-11-17 17:00:45,330 - INFO - Predicted SQL: SELECT T1.name, COUNT(T2.concert_id) AS number_of_concerts FROM singer AS T1 LEFT JOIN singer_concert AS T2 ON T1.singer_id = T2.singer_id GROUP BY T1.singer_id, T1.name ORDER BY T1.name
+2025-11-17 17:00:45,330 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 17:00:53,736 - INFO - Question: List singer names and number of concerts for each singer.
+2025-11-17 17:00:53,736 - INFO - Predicted SQL: SELECT T1.Name, COUNT(T2.cName) FROM Singer AS T1 JOIN Concert AS T2 ON T1.Sid = T2.Sid GROUP BY T1.Name
+2025-11-17 17:00:53,786 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 17:00:55,815 - INFO - Question: What are the names of the singers and number of concerts for each person?
+2025-11-17 17:00:55,815 - INFO - Predicted SQL: SELECT S.Name, COUNT(C.CId) FROM Singers AS S LEFT JOIN Concerts AS C ON S.Sid = C.Sid GROUP BY S.Name
+2025-11-17 17:00:55,830 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 17:01:12,766 - INFO - Question: What are the names of the singers and number of concerts for each person?
+2025-11-17 17:01:12,766 - INFO - Predicted SQL: SELECT T1.name, COUNT(T2.concertid) FROM Singer AS T1 JOIN Concert AS T2 ON T1.singerid = T2.singerid GROUP BY T1.name
+2025-11-17 17:01:12,766 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 17:01:24,485 - INFO - Question: What are the names of the singers and number of concerts for each person?
+2025-11-17 17:01:24,485 - INFO - Predicted SQL: SELECT S.name AS singer_name, COUNT(C.concert_id) AS number_of_concerts FROM Singers AS S LEFT JOIN Concerts AS C ON S.singer_id = C.singer_id GROUP BY S.singer_id, S.name ORDER BY S.name
+2025-11-17 17:01:24,500 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 17:01:30,062 - INFO - Question: What are the names of the singers and number of concerts for each person?
+2025-11-17 17:01:30,062 - INFO - Predicted SQL: SELECT S.singer_name, COUNT(SC.concert_id) AS number_of_concerts FROM Singers AS S LEFT JOIN SingerConcerts AS SC ON S.singer_id = SC.singer_id GROUP BY S.singer_name
+2025-11-17 17:01:30,077 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 17:01:56,514 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 17:02:02,139 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 17:02:12,772 - WARNING - Rate limit exceeded for gemini. Retrying in 20 seconds...
+2025-11-17 17:02:39,621 - WARNING - Rate limit exceeded for gemini. Retrying in 40 seconds...
+2025-11-17 17:03:20,074 - WARNING - Rate limit exceeded for gemini. Retrying in 80 seconds...
+2025-11-17 17:04:40,075 - ERROR - Failed to get response from gemini after 5 retries.
+2025-11-17 17:04:40,075 - INFO - Question: What are the names of the singers and number of concerts for each person?
+2025-11-17 17:04:40,075 - INFO - Predicted SQL: Error: Failed after 5 retries due to rate limiting.
+2025-11-17 17:04:40,125 - INFO - --- Running Method: Standard for DB: concert_singer ---
+2025-11-17 17:04:40,874 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 17:04:46,333 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 17:04:56,817 - WARNING - Rate limit exceeded for gemini. Retrying in 20 seconds...
+2025-11-17 17:05:17,297 - WARNING - Rate limit exceeded for gemini. Retrying in 40 seconds...
+2025-11-17 17:05:57,767 - WARNING - Rate limit exceeded for gemini. Retrying in 80 seconds...
+2025-11-17 17:07:17,772 - ERROR - Failed to get response from gemini after 5 retries.
+2025-11-17 17:07:17,772 - INFO - Question: List all singer names in concerts in year 2014.
+2025-11-17 17:07:17,772 - INFO - Predicted SQL: Error: Failed after 5 retries due to rate limiting.
+2025-11-17 17:07:17,772 - INFO - --- Running Method: CoT for DB: concert_singer ---
+2025-11-17 17:07:18,679 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 17:07:24,153 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 17:07:34,637 - WARNING - Rate limit exceeded for gemini. Retrying in 20 seconds...
+2025-11-17 17:07:55,275 - WARNING - Rate limit exceeded for gemini. Retrying in 40 seconds...
+2025-11-17 17:08:35,750 - WARNING - Rate limit exceeded for gemini. Retrying in 80 seconds...
+2025-11-17 17:09:55,749 - ERROR - Failed to get response from gemini after 5 retries.
+2025-11-17 17:09:55,749 - INFO - Question: List all singer names in concerts in year 2014.
+2025-11-17 17:09:55,749 - INFO - Predicted SQL: Error: Failed after 5 retries due to rate limiting.
+2025-11-17 17:09:55,749 - INFO - --- Running Method: QDecomp for DB: concert_singer ---
+2025-11-17 17:09:56,873 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 17:10:02,349 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 17:10:14,333 - WARNING - Rate limit exceeded for gemini. Retrying in 20 seconds...
+2025-11-17 17:10:35,630 - WARNING - Rate limit exceeded for gemini. Retrying in 40 seconds...
+2025-11-17 17:11:16,272 - WARNING - Rate limit exceeded for gemini. Retrying in 80 seconds...
+2025-11-17 17:12:36,272 - ERROR - Failed to get response from gemini after 5 retries.
+2025-11-17 17:12:36,272 - INFO - Question: List all singer names in concerts in year 2014.
+2025-11-17 17:12:36,272 - INFO - Predicted SQL: Error: Failed after 5 retries due to rate limiting.
+2025-11-17 17:12:36,272 - INFO - --- Running Method: QDecomp+InterCOL for DB: concert_singer ---
+2025-11-17 17:12:36,984 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 17:12:42,499 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 17:12:53,139 - WARNING - Rate limit exceeded for gemini. Retrying in 20 seconds...
+2025-11-17 17:13:13,716 - WARNING - Rate limit exceeded for gemini. Retrying in 40 seconds...
+2025-11-17 17:13:54,200 - WARNING - Rate limit exceeded for gemini. Retrying in 80 seconds...
+2025-11-17 17:15:14,199 - ERROR - Failed to get response from gemini after 5 retries.
+2025-11-17 17:15:14,200 - INFO - Question: List all singer names in concerts in year 2014.
+2025-11-17 17:15:14,201 - INFO - Predicted SQL: Error: Failed after 5 retries due to rate limiting.
+2025-11-17 17:15:14,206 - INFO - --- Running Method: SCoT (Ours) for DB: concert_singer ---
+2025-11-17 17:15:15,002 - WARNING - Rate limit exceeded for gemini. Retrying in 5 seconds...
+2025-11-17 17:15:20,490 - WARNING - Rate limit exceeded for gemini. Retrying in 10 seconds...
+2025-11-17 17:15:30,977 - WARNING - Rate limit exceeded for gemini. Retrying in 20 seconds...
+2025-11-17 17:15:51,458 - WARNING - Rate limit exceeded for gemini. Retrying in 40 seconds...
