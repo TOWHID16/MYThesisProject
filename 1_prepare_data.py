@@ -27,28 +27,36 @@ def find_db_root(spider_dir: Path) -> Path:
     raise FileNotFoundError("Spider database/ or databases/ folder not found")
 
 def format_schema_api_docs(schema_info: dict) -> str:
-    """
-    Make compact 'API-Docs' style schema text from tables.json for prompting.
-    Example:
-      ### SQLite SQL tables, with their properties:
-      # tableA (col1, col2, ...)
-      # tableB (col1, col2, ...)
-    """
     lines = ["### SQLite SQL tables, with their properties:", "#"]
     table_names = schema_info["table_names_original"]
     col_pairs   = schema_info["column_names_original"]  # list of [table_idx, col_name]
+
     # collect columns by table
     table_cols = {i: [] for i in range(len(table_names))}
     for t_idx, c_name in col_pairs:
-        if t_idx == -1:  # skip special '*'
+        # skip special/global "*" row and non-table columns
+        if t_idx == -1 or c_name == "*":
             continue
-        if c_name != "*":
-            table_cols[t_idx].append(c_name)
-    # render
+        table_cols[t_idx].append(c_name)
+
+    # render tables
     for i, tname in enumerate(table_names):
         cols = ", ".join(table_cols.get(i, []))
         lines.append(f"# {tname} ({cols})")
+
+    # foreign key hints (more grounding for joins)
+    fks = schema_info.get("foreign_keys", [])
+    for (from_id, to_id) in fks:
+        # from_id / to_id are indices into col_pairs
+        ft, fc = col_pairs[from_id]   # (table_idx, col_name)
+        tt, tc = col_pairs[to_id]
+        if ft != -1 and tt != -1 and fc != "*" and tc != "*":
+            from_tbl = table_names[ft]
+            to_tbl   = table_names[tt]
+            lines.append(f"# FK: {from_tbl}.{fc} -> {to_tbl}.{tc}")
+
     return "\n".join(lines) + "\n"
+
 
 def main():
     # ---- load files
