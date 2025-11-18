@@ -1,5 +1,5 @@
 # SCoT-SQL: Plan -> Plan-Check -> Final SQL
-# Output: runs/dev_30/predicted_scot_models_gemini-2.5-pro.sql
+# Output: runs/dev_600/predicted_scot_models_gemini-2.5-pro.sql
 # Code updated based on instruction_2, instruction_3, & instruction_4:
 # A) Plan temperature is set to 0.3.
 # B) FEW_SHOT_CHECK includes mandatory FK hints and canonical rules.
@@ -369,7 +369,7 @@ Bad SQL:
 """
 
 PROJ_ROOT = Path(__file__).resolve().parent
-RUN_DIR   = PROJ_ROOT / "runs" / "dev_30"
+RUN_DIR   = PROJ_ROOT / "runs" / "dev_600"
 INPUT_TEST_SET = RUN_DIR / "my_test_set.json"
 OUTPUT_FILE    = RUN_DIR / "predicted_scot_models_gemini-2.5-pro.sql"
 DEBUG_LOG_FILE = RUN_DIR / "scot_debug.log" # Added for Instruction 7

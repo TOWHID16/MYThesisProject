@@ -1,12 +1,12 @@
 # 4_eval_exec_acc.py
-# Quick execution-accuracy checker for Spider (dev_30)
+# Quick execution-accuracy checker for Spider (dev_600)
 # Evaluates multiple prediction files; writes one CSV per file + a summary.
 
 import sqlite3, json, csv
 from pathlib import Path
 
 PROJ_ROOT = Path(__file__).resolve().parent
-RUN_DIR    = PROJ_ROOT / "runs" / "dev_30"
+RUN_DIR    = PROJ_ROOT / "runs" / "dev_600"
 TEST_JSON  = RUN_DIR / "my_test_set.json"
 
 # ======= Add as many pred files as you want =======

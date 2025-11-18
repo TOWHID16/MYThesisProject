@@ -1,6 +1,6 @@
 # 2_run_baseline_cot.py
-# Run a simple CoT baseline over runs/dev_30/my_test_set.json
-# Outputs: runs/dev_30/predicted_cot_{modelname}.sql
+# Run a simple CoT baseline over runs/dev_600/my_test_set.json
+# Outputs: runs/dev_600/predicted_cot_{modelname}.sql
 
 import os, json, time
 from pathlib import Path
@@ -11,7 +11,7 @@ from utils_gemini_rest import gemini_generate_text
 
 # ---- CONFIG ----
 PROJ_ROOT = Path(__file__).resolve().parent
-RUN_DIR    = PROJ_ROOT / "runs" / "dev_30"
+RUN_DIR    = PROJ_ROOT / "runs" / "dev_600"
 INPUT_TEST_SET = RUN_DIR / "my_test_set.json"
 OUTPUT_FILE_PREFIX = "predicted_cot"
 

@@ -8,7 +8,7 @@ load_dotenv()
 from utils_gemini_rest import gemini_generate_text
 
 PROJ_ROOT = Path(__file__).resolve().parent
-RUN_DIR   = PROJ_ROOT / "runs" / "dev_30"
+RUN_DIR   = PROJ_ROOT / "runs" / "dev_600"
 INPUT_TEST_SET = RUN_DIR / "my_test_set.json"
 OUTPUT_FILE    = RUN_DIR / "predicted_standard.sql"
 SLEEP_EVERY = 10

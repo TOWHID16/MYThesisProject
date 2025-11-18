@@ -1,9 +1,9 @@
 # 1_prepare_data.py
 # Create a small Spider sample set: schema_str + question + gold_query + db_path
 # Outputs:
-#   runs/dev_30/my_test_set.json
-#   runs/dev_30/my_gold_set.sql
-#   runs/dev_30/my_gold_set.json
+#   runs/dev_600/my_test_set.json
+#   runs/dev_600/my_gold_set.sql
+#   runs/dev_600/my_gold_set.json
 
 import os, json, random, sys
 from pathlib import Path
@@ -11,8 +11,8 @@ from pathlib import Path
 # ---- CONFIG ----
 PROJ_ROOT = Path(__file__).resolve().parent
 SPIDER_DIR = PROJ_ROOT / "data" / "spider"   # E:\MYThesisProject\data\spider
-OUT_DIR    = PROJ_ROOT / "runs" / "dev_30"   # change to dev_200 later
-NUM_SAMPLES = 30                              # sanity first; later 200
+OUT_DIR    = PROJ_ROOT / "runs" / "dev_600"   
+NUM_SAMPLES = 600                             
 
 # fixed names
 DEV_JSON_PATH      = SPIDER_DIR / "dev.json"
