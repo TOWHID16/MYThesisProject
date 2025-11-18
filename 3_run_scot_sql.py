@@ -1,7 +1,5 @@
-# 3_run_scot_sql.py  (PART 1/3)
 # SCoT-SQL: Plan -> Plan-Check -> Final SQL
 # Output: runs/dev_30/predicted_scot_models_gemini-2.5-pro.sql
-#
 # Code updated based on instruction_2, instruction_3, & instruction_4:
 # A) Plan temperature is set to 0.3.
 # B) FEW_SHOT_CHECK includes mandatory FK hints and canonical rules.
@@ -24,6 +22,8 @@ load_dotenv()
 from utils_gemini_rest import gemini_generate_text
 import sqlite3
 import typing as _t
+
+MAX_SQL_LEN = 4000  # sanity guard for oversized generations
 
 # UPDATE D (instr_4): Add Plan-guard + NOCASE heuristic helpers
 def _parse_plan(checked_plan: str) -> dict:
@@ -76,6 +76,227 @@ def _enforce_plan(sql: str, checked_plan: str) -> str:
             out += f" LIMIT {m.group(1)}"
     return _ensure_semicolon(out)
 
+def _segment_plan(plan_text: str) -> dict:
+    """Split SCoT-Plan text into clause->lines (first match wins for each clause)."""
+    clauses = ["- from:", "- where:", "- group by:", "- having:", "- order by:", "- select:", "- limit:"]
+    out = {c: [] for c in clauses}
+    for line in plan_text.splitlines():
+        s = line.strip()
+        sl = s.lower()
+        for c in clauses:
+            if sl.startswith(c):
+                out[c].append(s.split(":", 1)[1].strip())
+                break
+    return out
+
+def _dedup_clause_block(vals: list[str]) -> str:
+    """Keep first non-empty; if multiple exist, prefer the first unique."""
+    if not vals:
+        return "(none)"
+    seen = set()
+    for v in vals:
+        vv = (v or "").strip()
+        if not vv:
+            continue
+        if vv.lower() not in seen:
+            seen.add(vv.lower())
+            return vv
+    return "(none)"
+
+def _normalize_plan(plan_text: str) -> str:
+    """Normalize duplicated clauses & rebuild the plan in canonical order."""
+    if not plan_text or "SCoT-Plan:" not in plan_text:
+        return plan_text
+    blocks = _segment_plan(plan_text)
+    fmt = [
+        ("- FROM:",      _dedup_clause_block(blocks.get("- from:",      []))),
+        ("- WHERE:",     _dedup_clause_block(blocks.get("- where:",     []))),
+        ("- GROUP BY:",  _dedup_clause_block(blocks.get("- group by:",  []))),
+        ("- HAVING:",    _dedup_clause_block(blocks.get("- having:",    []))),
+        ("- ORDER BY:",  _dedup_clause_block(blocks.get("- order by:",  []))),
+        ("- SELECT:",    _dedup_clause_block(blocks.get("- select:",    []))),
+        ("- LIMIT:",     _dedup_clause_block(blocks.get("- limit:",     []))),
+    ]
+    lines = ["SCoT-Plan:"] + [f"{k} {v}" for k, v in fmt]
+    return "\n".join(lines)
+
+# === Enforce plan table coverage on candidates ===
+_NEG_TOKENS = {
+    "no", "without", "none", "missing", "lack", "exclude", "not present",
+    "neither", "except those", "no such", "no one", "no country", "no maker",
+    "নেই", "ছাড়া", "বিহীন", "শূন্য", "অনুপস্থিত"
+}
+
+def _needs_setdiff(q: str) -> bool:
+    if not q:
+        return False
+    s = q.strip().lower()
+    return any(tok in s for tok in _NEG_TOKENS)
+
+def _dedup_preserve_order(items: list[str]) -> list[str]:
+    seen = set()
+    out = []
+    for x in items:
+        k = (x or "").strip().lower()
+        if k and k not in seen:
+            seen.add(k)
+            out.append(x)
+    return out
+
+# === SQL truncation detection ===
+_TRUNC_PATTERNS = (
+    r"\bON\s*$", r"\bWHERE\s*$", r"\bAND\s*$", r"\bOR\s*$",
+    r"=\s*$", r",\s*$", r"\bJOIN\s*$", r"\bGROUP BY\s*$",
+    r"\bHAVING\s*$", r"\bORDER BY\s*$", r"\bUNION\s*$",
+    r"\bEXCEPT\s*$", r"\bINTERSECT\s*$"
+)
+
+def _is_viable_sql(sql: str) -> bool:
+    s = (sql or "").strip().lower()
+    if not s.startswith("select"):
+        return False
+    if (" from " not in s) and not any(op in s for op in (" union ", " except ", " intersect ")):
+        return False
+    # Paren balance
+    if s.count("(") != s.count(")"):
+        return False
+    # Ends with suspicious dangling tokens?
+    for pat in _TRUNC_PATTERNS:
+        if re.search(pat, s, flags=re.I):
+            return False
+    return True
+
+def _clean_bad_tail(sql: str) -> str:
+    """Trim dangling fragments at the end; keep last safe token boundary."""
+    s = (sql or "").strip()
+    # Try to cut back to last complete clause terminator
+    cutpoints = [" UNION ", " EXCEPT ", " INTERSECT ", " ORDER BY ", " HAVING ", " GROUP BY ", " WHERE ", " JOIN ", " FROM "]
+    last = -1
+    for tok in cutpoints:
+        p = s.upper().rfind(tok)
+        last = max(last, p)
+    if last > 0:
+        s = s[:last].strip()
+    # Ensure it still ends with ';'
+    if not s.endswith(";"):
+        s += ";"
+    return s
+
+def _prefer_setdiff(sql: str, question: str) -> str:
+    if not _needs_setdiff(question):
+        return sql
+    s = sql.lower()
+    # If it already uses EXCEPT / anti-join filter, leave it
+    if " except " in s or (" left join " in s and " is null" in s):
+        return sql
+    # Light-touch heuristic: if it's a LEFT JOIN without the IS NULL anti-filter, add it when safe.
+    # This avoids hallucination: only add when there's exactly one JOIN and one right alias.
+    m = re.search(r"\bfrom\s+([a-z_][a-z0-9_]*)\s+as\s+([a-z]\w*)\b.*?\bleft\s+join\s+([a-z_][a-z0-9_]*)\s+as\s+([a-z]\w*)\b", sql, flags=re.I|re.S)
+    if m and " where " not in s:
+        right_alias = m.group(4)
+        return sql.rstrip(";") + f" WHERE {right_alias}.rowid IS NULL;"
+    return sql
+
+# === Schema validation ===
+def _collect_schema_symbols(schema_str: str) -> tuple[set[str], set[str]]:
+    """
+    Returns (tables, columns) in lowercase.
+    Accepts lines like: "# table_name (colA, colB, ...)" (your schema format).
+    """
+    tbls, cols = set(), set()
+    for line in schema_str.splitlines():
+        line = line.strip()
+        if not line.startswith("# "): 
+            continue
+        if "(" in line and ")" in line:
+            # "# table (a, b, c)"
+            head, inside = line[2:].split("(", 1)
+            t = head.strip().split()[0]
+            tbls.add(t.lower())
+            for c in inside.split(")")[0].split(","):
+                cc = c.strip()
+                if cc:
+                    cols.add(cc.split()[0].lower())
+    return tbls, cols
+
+_COLREF = re.compile(r"\b([a-z_][a-z0-9_]*)\.([a-z_][a-z0-9_]*)\b", re.I)
+_TBLREF = re.compile(r"\bfrom\s+([a-z_][a-z0-9_]*)\b|\bjoin\s+([a-z_][a-z0-9_]*)\b", re.I)
+
+def _uses_only_schema(sql: str, schema_tables: set[str], schema_cols: set[str]) -> bool:
+    # table names (FROM/JOIN)
+    for m in _TBLREF.finditer(sql):
+        t = (m.group(1) or m.group(2) or "").lower()
+        if t and t not in schema_tables:
+            return False
+    # qualified col refs
+    for m in _COLREF.finditer(sql):
+        col = (m.group(2) or "").lower()
+        if col and col not in schema_cols:
+            return False
+    return True
+
+def _score_against_plan(sql: str, checked_plan: str) -> int:
+    s = sql.lower()
+    p = checked_plan.lower()
+    score = 0
+    if "- order by:" in p:
+        ob = p.split("- order by:",1)[1].split("\n",1)[0].strip()
+        if ob != "(none)" and " order by " in s: score += 2
+        if ob == "(none)" and " order by " not in s: score += 1
+        # Bonus for matching COUNT(*) in ORDER BY
+        if "count(" in ob and "order by" in s and "count(*)" in s:
+            score += 1
+    if "- limit:" in p:
+        lim = p.split("- limit:",1)[1].split("\n",1)[0].strip()
+        if lim != "(none)" and " limit " in s: score += 2
+        if lim == "(none)" and " limit " not in s: score += 1
+    # encourage plan SELECT tokens presence (very light heuristic)
+    if "- select:" in p:
+        want = p.split("- select:",1)[1].split("\n",1)[0]
+        for tok in re.findall(r"[a-z_][a-z0-9_]*", want, flags=re.I):
+            if tok and tok in s: score += 1
+    return score
+
+# === Enforce plan table coverage on candidates ===
+def _tables_in_plan(checked_plan: str) -> set[str]:
+    STOP = {
+        "join","on","left","right","inner","outer","as",
+        "union","intersect","except","where","group","having",
+        "order","select","limit"
+    }
+    want = set()
+    for line in checked_plan.splitlines():
+        if line.strip().lower().startswith("- from:"):
+            frag = line.split(":", 1)[1].lower()
+            for t in re.findall(r"\b([a-z_][a-z0-9_]*)\b(?:\s+as\s+[a-z_][a-z0-9_]*)?", frag):
+                if t not in STOP:
+                    want.add(t)
+    return want
+
+def _tables_in_sql(sql: str) -> set[str]:
+    s = sql.lower()
+    tbls = set(re.findall(r"\bfrom\s+([a-z_][a-z0-9_]*)\b", s))
+    tbls |= set(re.findall(r"\bjoin\s+([a-z_][a-z0-9_]*)\b", s))
+    return tbls
+
+def _filter_by_plan_tables(cands: list[str], checked_plan: str) -> list[str]:
+    need = _tables_in_plan(checked_plan)
+    if not need:
+        return cands
+    good, weak = [], []
+    for c in cands:
+        have = _tables_in_sql(c)
+        (good if need.issubset(have) else weak).append(c)
+    return good + weak
+
+# === Normalize model responses to plain text (handles dict/JSON) ===
+def _to_text(x):
+    if isinstance(x, str):
+        return x
+    try:
+        return json.dumps(x, ensure_ascii=False)
+    except Exception:
+        return str(x)
 
 def ask_with_retry(prompt, temperature, max_output_tokens, timeout, tries=3, sleep_sec=0.5):
     last = None
@@ -92,6 +313,15 @@ def ask_with_retry(prompt, temperature, max_output_tokens, timeout, tries=3, sle
             time.sleep(sleep_sec)
     raise last
 
+_GEN_CACHE = {}
+def ask_with_retry_cached(prompt, temperature, max_output_tokens, timeout, tries=3, sleep_sec=0.5):
+    k = (prompt, temperature, max_output_tokens)
+    if k in _GEN_CACHE: 
+        return _GEN_CACHE[k]
+    out = ask_with_retry(prompt, temperature, max_output_tokens, timeout, tries, sleep_sec)
+    _GEN_CACHE[k] = out
+    return out
+
 def try_exec(db_path, sql):
     try:
         con = sqlite3.connect(db_path)
@@ -105,6 +335,14 @@ def try_exec(db_path, sql):
 
 def build_repair_prompt(schema_str, question, checked_plan, bad_sql, error_msg):
     # UPDATE B (instr_4): Preserve ORDER BY rule
+    # Add negation-aware hint automatically
+    extra_hint = ""
+    try:
+        if _needs_setdiff(question):
+            extra_hint = "- Since the question implies a negation (no/without), prefer EXCEPT or LEFT JOIN ... WHERE right.id IS NULL for set-difference.\n"
+    except Exception:
+        pass
+
     return f"""{schema_str.strip()}
 
 The SQL below failed on SQLite with this error:
@@ -119,8 +357,7 @@ Additional Fix Rules:
 - Preserve ORDER BY and LIMIT exactly as specified by the SCoT-Plan. Only omit them if the plan shows (none).
 - Use SELECT DISTINCT to deduplicate when no aggregation is needed.
 - Use only schema columns and the FK join keys shown in the plan; do not invent columns.
-
-Question: {question}
+{extra_hint}Question: {question}
 
 SCoT-Plan:
 {checked_plan.strip()}
@@ -140,8 +377,7 @@ DEBUG_LOG_FILE = RUN_DIR / "scot_debug.log" # Added for Instruction 7
 SLEEP_EVERY = 10
 
 # UPDATE E: Added 3 new patterns (UNION, EXCEPT, INTERSECT)
-FEW_SHOT_PLAN = """\
-# SCoT Plan (few-shot)
+FEW_SHOT_PLAN = """# SCoT Plan (few-shot)
 Input Question: List top 3 highest Rating TV series. List the TV series's Episode and Rating.
 Schema (API-Docs):
 # TV_series (id, Episode, Air_Date, Rating, Share, 18_49_Rating_Share, Viewers_m, Weekly_Rank, Channel)
@@ -255,8 +491,7 @@ SCoT-Plan:
 """
 
 # UPDATE B: Added 4 new rules to FEW_SHOT_CHECK
-FEW_SHOT_CHECK = """\
-# Plan-Check Rules:
+FEW_SHOT_CHECK = """# Plan-Check Rules:
 - Use only tables/columns that appear in the provided API-Docs.
 - If a column is not in schema, replace or drop it; never hallucinate new columns.
 - If alias is used, define it in FROM/JOIN.
@@ -279,6 +514,9 @@ def build_plan_prompt(schema_str: str, question: str) -> str:
 
 ### Task
 Given the schema and question, produce a concise SCoT-Plan describing SQL clauses.
+# Rules for popularity wording:
+# - If the question says "most popular" without mentioning "percentage/share", treat popularity as COUNT of entities (e.g., number of countries).
+# - Only use SUM(Percentage) when the question explicitly asks by percentage/share.
 
 Return EXACTLY this format:
 
@@ -371,23 +609,47 @@ No commentary outside the fenced block.
 Question: {question}
 """
 
+def build_standard_sql_prompt_setdiff(schema_str: str, question: str) -> str:
+    """Bias toward EXCEPT/anti-join when the question implies negation."""
+    return f"""{schema_str.strip()}
 
-### PART 2/3
+Return ONLY the final SQL for the question below, wrapped in a fenced block:
 
-# 3_run_scot_sql.py  (PART 2/3)
+```sql
+SELECT ...
+```
+Rules:
+Prefer a set-difference approach (EXCEPT) or anti-join (LEFT JOIN ... WHERE right.id IS NULL) when the question asks for items with none/without.
+Use only tables/columns from the schema.
+SQL-92 only (no CTE/window).
+Define aliases before using.
+Do NOT add ORDER BY unless ranking/sorting is required.
+No commentary outside the fenced block.
+
+Question: {question}
+"""
+
 
 def extract_sql(text: str) -> str:
     """Extract the SQL from a fenced block; fallback to first SELECT...;"""
     t = text or ""
-    m = re.search(r"```sql\s*(.*?)```", t, flags=re.DOTALL | re.IGNORECASE)
-    if m:
-        sql = m.group(1).strip()
-    else:
-        m2 = re.search(r"(SELECT\b.*?;)", t, flags=re.DOTALL | re.IGNORECASE)
-        sql = (m2.group(1).strip() if m2 else "").strip() or "SELECT 1;"
 
+    # 1) Prefer code fence (with or without 'sql' tag)
+    m = re.search(r"```(?:sql)?\s*(.*?)```", t, flags=re.DOTALL | re.IGNORECASE)
+    if m:
+        sql = (m.group(1) or "").strip()
+    else:
+        sql = ""
+
+    # 2) If fence was missing or empty, fall back to first SELECT...;
+    if not sql:
+        m2 = re.search(r"(SELECT\b.*?;)", t, flags=re.DOTALL | re.IGNORECASE)
+        sql = (m2.group(1).strip() if m2 else "SELECT 1;")
+
+    # 3) Normalize to a single statement, keep trailing semicolon
     if ";" in sql:
         sql = sql.split(";", 1)[0] + ";"
+
     return sql.replace("\n", " ").replace("\r", " ").strip()
 
 def run():
@@ -403,15 +665,19 @@ def run():
     for i, ex in enumerate(data, 1):
         schema = ex["schema_str"]
         q      = ex["question"]
+        
+        # Collect schema symbols for validation
+        schema_tables, schema_cols = _collect_schema_symbols(schema)
 
         # 1) PLAN  (slightly creative, with retry)
         plan_prompt = build_plan_prompt(schema, q)
         try:
             # UPDATE A: Temperature is set to 0.3
             # UPDATE I: Timeout 120
-            plan = ask_with_retry(
-                plan_prompt, temperature=0.3, max_output_tokens=800, timeout=120
-            )
+            plan = _to_text(ask_with_retry_cached(
+    plan_prompt, temperature=0.3, max_output_tokens=800, timeout=120
+))
+
         except Exception as e:
             print(f"  [Plan ERR] {i}/{len(data)} -> {e}")
             preds.append("SELECT 1;")
@@ -420,21 +686,30 @@ def run():
         # 2) PLAN-CHECK  (deterministic, with retry)
         check_prompt = build_check_prompt(schema, plan)
         try:
-            # UPDATE I: Timeout 120
-            checked = ask_with_retry(
+            checked = _to_text(ask_with_retry_cached(
                 check_prompt, temperature=0.0, max_output_tokens=800, timeout=120
-            )
+            ))
         except Exception as e:
             print(f"  [Check ERR] {i}/{len(data)} -> {e}")
             checked = plan  # fallback
-
+        
+        # Normalize plan to dedupe repeated clauses
+        checked = _normalize_plan(checked)
+        
+        # Sanity: model যদি JSON/garbage দেয়
+        if "SCoT-Plan:" not in checked:
+            checked = plan
+        
         # 3) FINAL SQL: 3x SCoT + 1x Standard
         sql_prompt = build_sql_prompt(schema, checked)
         candidates = []
+        raw_sql_texts = []  # Capture raw model outputs
         # UPDATE A (instr_4): Change 2 -> 3
         for _ in range(3):
             try:
-                sql_text = ask_with_retry(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=120)
+                sql_text = _to_text(ask_with_retry_cached(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=120))
+                raw_sql_texts.append(sql_text)
+
                 cand_sql = extract_sql(sql_text)
                 candidates.append(cand_sql)
             except Exception:
@@ -442,47 +717,100 @@ def run():
 
         # extra: standard-style candidate
         try:
-            std_text = ask_with_retry(
-                build_standard_sql_prompt(schema, q),
-                temperature=0.0, max_output_tokens=1024, timeout=120
-            )
+            std_text = _to_text(ask_with_retry_cached(
+    build_standard_sql_prompt(schema, q),
+    temperature=0.0, max_output_tokens=1024, timeout=120
+))
+            raw_sql_texts.append(std_text)
+
             std_sql = extract_sql(std_text)
             candidates.append(std_sql)
         except Exception:
             pass
 
-        # UPDATE G: Discard 'SELECT 1;' candidates
+        # Optional: negation-aware extra candidate
+        try:
+            if _needs_setdiff(q):
+                std_neg_text = _to_text(ask_with_retry_cached(
+                    build_standard_sql_prompt_setdiff(schema, q),
+                    temperature=0.0, max_output_tokens=1024, timeout=120
+                ))
+                raw_sql_texts.append(std_neg_text)
+                std_neg_sql = extract_sql(std_neg_text)
+                candidates.append(std_neg_sql)
+        except Exception:
+            pass
+
+        # Drop trivial fallbacks
         candidates = [c for c in candidates if c.strip().lower() != "select 1;"]
+        
+        # Length guard
+        candidates = [c[:MAX_SQL_LEN] for c in candidates]
+        # Deduplicate while preserving order
+        candidates = _dedup_preserve_order(candidates)
+        
+        # Filter out truncated/broken SQL
+        candidates = [c for c in candidates if _is_viable_sql(c)]
+        # Try to clean bad tails
+        candidates = [c if _is_viable_sql(c) else _clean_bad_tail(c) for c in candidates]
+        
+        # Schema validation: reject candidates with invalid table/column refs
+        candidates = [c for c in candidates if _uses_only_schema(c, schema_tables, schema_cols)]
+
+        # Retry once if we lost all candidates
         if not candidates:
-            # Retry SCoT prompt once
             try:
-                sql_text = ask_with_retry(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=120)
+                sql_text = _to_text(ask_with_retry_cached(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=120))
                 cand_sql = extract_sql(sql_text)
                 if cand_sql.strip().lower() != "select 1;":
                     candidates.append(cand_sql)
             except Exception:
-                pass # Still no candidates, will fail later
-
-        # UPDATE H: Canonicalization Step (with SELECT 1; fallback)
+                pass
+        
+        # ---- Canonicalization step ----
         canon_candidates = []
+        canon_raw_texts = []  # Capture raw canon outputs
         for cand in candidates:
             try:
-                canon_text = ask_with_retry(
+                canon_text = _to_text(ask_with_retry_cached(
                     build_canon_prompt(schema, cand),
-                    temperature=0.0, max_output_tokens=800, timeout=120 # UPDATE I
-                )
+                    temperature=0.0, max_output_tokens=800, timeout=120
+                ))
+                canon_raw_texts.append(canon_text)
                 canon_sql = extract_sql(canon_text)
-                # guard: avoid SELECT 1;
-                if canon_sql.strip().lower() == "select 1;":
-                    canon_candidates.append(cand)  # keep original
-                else:
-                    canon_candidates.append(canon_sql)
+                canon_candidates.append(canon_sql if canon_sql.strip().lower() != "select 1;" else cand)
             except Exception:
-                canon_candidates.append(cand) # fallback on error
+                canon_candidates.append(cand)  # fallback on error
         
-        # UPDATE D (instr_4): Apply post-processing (NOCASE, enforce plan)
+        # ---- Post-process (NOCASE + enforce plan ORDER/LIMIT) ----
         canon_candidates = [_enforce_plan(_add_nocase(c), checked) for c in canon_candidates]
         candidates       = [_enforce_plan(_add_nocase(c), checked) for c in candidates]
+        
+        # Apply setdiff preference for negation queries
+        if _needs_setdiff(q):
+            canon_candidates = [_prefer_setdiff(c, q) for c in canon_candidates]
+            candidates       = [_prefer_setdiff(c, q) for c in candidates]
+        
+        # Length guard and dedup on canonical candidates
+        canon_candidates = [c[:MAX_SQL_LEN] for c in canon_candidates]
+        canon_candidates = _dedup_preserve_order(canon_candidates)
+        
+        # Filter out truncated/broken SQL from canon
+        canon_candidates = [c for c in canon_candidates if _is_viable_sql(c)]
+        canon_candidates = [c if _is_viable_sql(c) else _clean_bad_tail(c) for c in canon_candidates]
+        
+        # Schema validation on canonical candidates
+        canon_candidates = [c for c in canon_candidates if _uses_only_schema(c, schema_tables, schema_cols)]
+        
+        # ---- Re-rank by ensuring FROM tables from plan exist in SQL ----
+        canon_candidates = _filter_by_plan_tables(canon_candidates, checked)
+        candidates       = _filter_by_plan_tables(candidates, checked)
+        
+        # Score and sort by plan-fit
+        canon_candidates = sorted(canon_candidates, key=lambda c: _score_against_plan(c, checked), reverse=True)
+        candidates       = sorted(candidates,       key=lambda c: _score_against_plan(c, checked), reverse=True)
+
+
 
         sql = None
         last_error = "failed to execute" # Default error
@@ -509,30 +837,41 @@ def run():
 
         # 4) Execution-guided repair (now with specific error)
         if sql is None:
-            rep_prompt = build_repair_prompt(schema, q, checked, failed_sql_for_repair, last_error)
-            try:
-                fixed_text = ask_with_retry(
-                    rep_prompt, temperature=0.0, max_output_tokens=800, timeout=120 # UPDATE I
-                )
-                fixed_sql = extract_sql(fixed_text)
-                # Apply post-process to repair
-                fixed_sql_processed = _enforce_plan(_add_nocase(fixed_sql), checked)
-                ok2, err_msg2 = try_exec(ex["db_path"], fixed_sql_processed)
-                if ok2:
-                    sql = fixed_sql_processed
-                else:
-                    # Second repair attempt
-                    rep_prompt2 = build_repair_prompt(schema, q, checked, fixed_sql_processed, err_msg2)
-                    fixed_text2 = ask_with_retry(
-                        rep_prompt2, temperature=0.0, max_output_tokens=800, timeout=120 # UPDATE I
-                    )
-                    fixed_sql2 = extract_sql(fixed_text2)
-                    # Apply post-process to 2nd repair
-                    fixed_sql2_processed = _enforce_plan(_add_nocase(fixed_sql2), checked)
-                    ok3, _ = try_exec(ex["db_path"], fixed_sql2_processed) # Don't care about 3rd error
-                    sql = fixed_sql2_processed if ok3 else "SELECT 1;"
-            except Exception:
-                sql = "SELECT 1;"
+            # Fast repair path for incomplete input
+            if "incomplete input" in (last_error or "").lower():
+                quick = _clean_bad_tail(failed_sql_for_repair)
+                ok_q, err_q = try_exec(ex["db_path"], quick)
+                if ok_q:
+                    sql = quick
+            
+            # If fast repair didn't work, do full LLM repair
+            if sql is None:
+                rep_prompt = build_repair_prompt(schema, q, checked, failed_sql_for_repair, last_error)
+                try:
+                    fixed_text = _to_text(ask_with_retry_cached(
+    rep_prompt, temperature=0.0, max_output_tokens=800, timeout=120
+))
+
+                    fixed_sql = extract_sql(fixed_text)
+                    # Apply post-process to repair
+                    fixed_sql_processed = _enforce_plan(_add_nocase(fixed_sql), checked)
+                    ok2, err_msg2 = try_exec(ex["db_path"], fixed_sql_processed)
+                    if ok2:
+                        sql = fixed_sql_processed
+                    else:
+                        # Second repair attempt
+                        rep_prompt2 = build_repair_prompt(schema, q, checked, fixed_sql_processed, err_msg2)
+                        fixed_text2 = _to_text(ask_with_retry_cached(
+    rep_prompt2, temperature=0.0, max_output_tokens=800, timeout=120
+))
+
+                        fixed_sql2 = extract_sql(fixed_text2)
+                        # Apply post-process to 2nd repair
+                        fixed_sql2_processed = _enforce_plan(_add_nocase(fixed_sql2), checked)
+                        ok3, _ = try_exec(ex["db_path"], fixed_sql2_processed) # Don't care about 3rd error
+                        sql = fixed_sql2_processed if ok3 else "SELECT 1;"
+                except Exception:
+                    sql = "SELECT 1;"
         
         # Fallback if sql is still None
         if sql is None:
@@ -542,7 +881,7 @@ def run():
         try:
             with open(DEBUG_LOG_FILE, "a", encoding="utf-8") as dbg:
                 db_id = ex.get('db_id', 'unknown_db')
-                dbg.write(f"\n--- IDX {i} ({db_id}) ---\nQ: {q}\nPLAN:\n{plan}\nCHECKED:\n{checked}\nCANDS:\n{candidates}\nCANON_CANDS:\n{canon_candidates}\nLAST_ERROR: {last_error}\nFINAL_SQL:\n{sql}\n\n")
+                dbg.write(f"\n--- IDX {i} ({db_id}) ---\nQ: {q}\nPLAN:\n{plan}\nCHECKED:\n{checked}\nRAW_SQL_TEXTS:\n{raw_sql_texts}\nCANDS:\n{candidates}\nRAW_CANON_TEXTS:\n{canon_raw_texts}\nCANON_CANDS:\n{canon_candidates}\nLAST_ERROR: {last_error}\nFINAL_SQL:\n{sql}\n\n")
         except Exception as e:
             print(f"  [Debug Log ERR] {i}/{len(data)} -> {e}")
 
@@ -562,7 +901,6 @@ def run():
     print(f"[OK] Saved -> {OUTPUT_FILE}")
     print(f"[OK] Debug Log -> {DEBUG_LOG_FILE}")
 
-# 3_run_scot_sql.py  (PART 3/3)
 
 if __name__ == "__main__":
     run()
