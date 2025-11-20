@@ -59,7 +59,7 @@ def main():
     for i, ex in enumerate(data, 1):
         p = build_prompt(ex["schema_str"], ex["question"])
         try:
-            txt = gemini_generate_text(p, temperature=0.0, max_output_tokens=600, timeout=90)
+            txt = gemini_generate_text(p, temperature=0.0, max_output_tokens=600, timeout=30)
             sql = extract_sql(txt)
         except Exception as e:
             print(f" [ERR] {i}/{len(data)} -> {e}")

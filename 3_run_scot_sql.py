@@ -675,7 +675,7 @@ def run():
             # UPDATE A: Temperature is set to 0.3
             # UPDATE I: Timeout 120
             plan = _to_text(ask_with_retry_cached(
-    plan_prompt, temperature=0.3, max_output_tokens=800, timeout=120
+    plan_prompt, temperature=0.3, max_output_tokens=800, timeout=30
 ))
 
         except Exception as e:
@@ -687,7 +687,7 @@ def run():
         check_prompt = build_check_prompt(schema, plan)
         try:
             checked = _to_text(ask_with_retry_cached(
-                check_prompt, temperature=0.0, max_output_tokens=800, timeout=120
+                check_prompt, temperature=0.0, max_output_tokens=800, timeout=30
             ))
         except Exception as e:
             print(f"  [Check ERR] {i}/{len(data)} -> {e}")
@@ -707,7 +707,7 @@ def run():
         # UPDATE A (instr_4): Change 2 -> 3
         for _ in range(3):
             try:
-                sql_text = _to_text(ask_with_retry_cached(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=120))
+                sql_text = _to_text(ask_with_retry_cached(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=30))
                 raw_sql_texts.append(sql_text)
 
                 cand_sql = extract_sql(sql_text)
@@ -719,7 +719,7 @@ def run():
         try:
             std_text = _to_text(ask_with_retry_cached(
     build_standard_sql_prompt(schema, q),
-    temperature=0.0, max_output_tokens=1024, timeout=120
+    temperature=0.0, max_output_tokens=1024, timeout=30
 ))
             raw_sql_texts.append(std_text)
 
@@ -733,7 +733,7 @@ def run():
             if _needs_setdiff(q):
                 std_neg_text = _to_text(ask_with_retry_cached(
                     build_standard_sql_prompt_setdiff(schema, q),
-                    temperature=0.0, max_output_tokens=1024, timeout=120
+                    temperature=0.0, max_output_tokens=1024, timeout=30
                 ))
                 raw_sql_texts.append(std_neg_text)
                 std_neg_sql = extract_sql(std_neg_text)
@@ -760,7 +760,7 @@ def run():
         # Retry once if we lost all candidates
         if not candidates:
             try:
-                sql_text = _to_text(ask_with_retry_cached(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=120))
+                sql_text = _to_text(ask_with_retry_cached(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=30))
                 cand_sql = extract_sql(sql_text)
                 if cand_sql.strip().lower() != "select 1;":
                     candidates.append(cand_sql)
@@ -774,7 +774,7 @@ def run():
             try:
                 canon_text = _to_text(ask_with_retry_cached(
                     build_canon_prompt(schema, cand),
-                    temperature=0.0, max_output_tokens=800, timeout=120
+                    temperature=0.0, max_output_tokens=800, timeout=30
                 ))
                 canon_raw_texts.append(canon_text)
                 canon_sql = extract_sql(canon_text)
@@ -849,7 +849,7 @@ def run():
                 rep_prompt = build_repair_prompt(schema, q, checked, failed_sql_for_repair, last_error)
                 try:
                     fixed_text = _to_text(ask_with_retry_cached(
-    rep_prompt, temperature=0.0, max_output_tokens=800, timeout=120
+    rep_prompt, temperature=0.0, max_output_tokens=800, timeout=30
 ))
 
                     fixed_sql = extract_sql(fixed_text)
@@ -862,7 +862,7 @@ def run():
                         # Second repair attempt
                         rep_prompt2 = build_repair_prompt(schema, q, checked, fixed_sql_processed, err_msg2)
                         fixed_text2 = _to_text(ask_with_retry_cached(
-    rep_prompt2, temperature=0.0, max_output_tokens=800, timeout=120
+    rep_prompt2, temperature=0.0, max_output_tokens=800, timeout=30
 ))
 
                         fixed_sql2 = extract_sql(fixed_text2)
