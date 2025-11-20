@@ -25,6 +25,307 @@ import typing as _t
 
 MAX_SQL_LEN = 4000  # sanity guard for oversized generations
 
+# ============================================================================
+# PATTERN DETECTION (for ensemble candidate selection)
+# ============================================================================
+
+_NEG_TOKENS_EXPANDED = {
+    "no", "without", "none", "missing", "lack", "exclude", "not present",
+    "neither", "except those", "no such", "no one", "no country", "no maker",
+    "never", "hasn't", "haven't", "didn't", "don't", "doesn't",
+    "নেই", "ছাড়া", "বিহীন", "শূন্য", "অনুপস্থিত"
+}
+
+_INTERSECT_TOKENS = {"both", "and", "as well as", "also", "shared", "common", "intersection"}
+_UNION_TOKENS = {"or", "either", "any", "union"}
+_EXTREMUM_TOKENS = {"most", "least", "highest", "lowest", "maximum", "minimum", "top", "bottom", "largest", "smallest", "best", "worst"}
+_PER_GROUP_TOKENS = {"each", "every", "per", "for each", "for every"}
+
+def _needs_negation(q: str) -> bool:
+    """Detect if question requires negation/anti-join logic."""
+    if not q:
+        return False
+    s = q.strip().lower()
+    return any(tok in s for tok in _NEG_TOKENS_EXPANDED)
+
+def _needs_intersect(q: str) -> bool:
+    """Detect 'both X and Y' patterns requiring INTERSECT."""
+    if not q:
+        return False
+    s = q.strip().lower()
+    # Look for "both" followed by "and" within reasonable distance
+    if "both" in s and " and " in s:
+        return True
+    # Look for "X and Y" with set-like nouns (cartoons, singers, countries, etc.)
+    if re.search(r"\b(cartoons?|singers?|countries|languages?|students?|owners?|professionals?)\b.*\band\b.*\b(directed|written|sung|spoken|living|by)", s):
+        return True
+    return False
+
+def _needs_union(q: str) -> bool:
+    """Detect 'either X or Y' patterns requiring UNION."""
+    if not q:
+        return False
+    s = q.strip().lower()
+    return ("either" in s and " or " in s) or (s.count(" or ") >= 1 and not _needs_intersect(q))
+
+def _needs_subquery(q: str) -> bool:
+    """Detect queries needing subqueries (per-group extremum, nested filters)."""
+    if not q:
+        return False
+    s = q.strip().lower()
+    # Per-group extremum: "most X per Y", "highest X for each Y"
+    has_extremum = any(tok in s for tok in _EXTREMUM_TOKENS)
+    has_per_group = any(tok in s for tok in _PER_GROUP_TOKENS)
+    return has_extremum and has_per_group
+
+# ============================================================================
+# SCHEMA VALIDATION & PK/FK PATH ENUMERATION
+# ============================================================================
+
+def _enumerate_pk_fk_paths(schema_str: str) -> dict:
+    """
+    Parse schema to extract PK/FK relationships.
+    Returns: {table_name: {"pk": col, "fks": [(fk_col, ref_table, ref_col), ...]}}
+    
+    Schema format example:
+    # table_name (col1 PRIMARY KEY, col2, col3 FOREIGN KEY REFERENCES other_table(other_col))
+    """
+    schema_map = {}
+    for line in schema_str.splitlines():
+        line = line.strip()
+        if not line.startswith("# "):
+            continue
+        if "(" not in line or ")" not in line:
+            continue
+        
+        # Extract table name
+        head, inside = line[2:].split("(", 1)
+        table = head.strip().split()[0]
+        cols_str = inside.split(")")[0]
+        
+        pk = None
+        fks = []
+        
+        for col_def in cols_str.split(","):
+            col_def = col_def.strip()
+            if "PRIMARY KEY" in col_def.upper():
+                pk = col_def.split()[0]
+            elif "FOREIGN KEY" in col_def.upper() or "REFERENCES" in col_def.upper():
+                # Extract FK: col REFERENCES ref_table(ref_col)
+                m = re.search(r"(\w+)\s+.*?REFERENCES\s+(\w+)\s*\((\w+)\)", col_def, re.I)
+                if m:
+                    fks.append((m.group(1), m.group(2), m.group(3)))
+        
+        schema_map[table.lower()] = {"pk": pk, "fks": fks}
+    
+    return schema_map
+
+def _find_join_path(schema_map: dict, table_a: str, table_b: str) -> list:
+    """
+    Find join path between two tables using BFS on FK relationships.
+    Returns: [(table_from, col_from, table_to, col_to), ...]
+    """
+    from collections import deque
+    
+    table_a = table_a.lower()
+    table_b = table_b.lower()
+    
+    if table_a == table_b:
+        return []
+    
+    # Build adjacency graph
+    graph = {}
+    for tbl, info in schema_map.items():
+        graph[tbl] = []
+        for fk_col, ref_tbl, ref_col in info.get("fks", []):
+            graph[tbl].append((ref_tbl, fk_col, ref_col))
+            # Bidirectional
+            if ref_tbl not in graph:
+                graph[ref_tbl] = []
+            graph[ref_tbl].append((tbl, ref_col, fk_col))
+    
+    # BFS
+    queue = deque([(table_a, [])])
+    visited = {table_a}
+    
+    while queue:
+        current, path = queue.popleft()
+        if current == table_b:
+            return path
+        
+        for neighbor, col_from, col_to in graph.get(current, []):
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append((neighbor, path + [(current, col_from, neighbor, col_to)]))
+    
+    return []  # No path found
+
+# ============================================================================
+# PRE-SQL SANITIZERS
+# ============================================================================
+
+def _balance_parens(text: str) -> str:
+    """Balance parentheses by removing unmatched ones."""
+    stack = []
+    to_remove = set()
+    for i, ch in enumerate(text):
+        if ch == '(':
+            stack.append(i)
+        elif ch == ')':
+            if stack:
+                stack.pop()
+            else:
+                to_remove.add(i)
+    to_remove.update(stack)
+    
+    if not to_remove:
+        return text
+    
+    return ''.join(ch for i, ch in enumerate(text) if i not in to_remove)
+
+def _remove_dangling_keywords(sql: str) -> str:
+    """Remove dangling SQL keywords at the end (ORDER BY, WHERE, AND, OR, ON, JOIN)."""
+    keywords = [r"\bWHERE\s*$", r"\bAND\s*$", r"\bOR\s*$", r"\bON\s*$", 
+                r"\bJOIN\s*$", r"\bLEFT\s*$", r"\bRIGHT\s*$", r"\bINNER\s*$",
+                r"\bORDER\s+BY\s*$", r"\bGROUP\s+BY\s*$", r"\bHAVING\s*$"]
+    
+    for pattern in keywords:
+        sql = re.sub(pattern, "", sql, flags=re.I)
+    
+    return sql.strip()
+
+def _fix_incomplete_plan(plan_text: str) -> str:
+    """Fix common plan syntax errors (unbalanced parens, incomplete lines)."""
+    if not plan_text or "SCoT-Plan:" not in plan_text:
+        return plan_text
+    
+    lines = []
+    for line in plan_text.splitlines():
+        line = line.strip()
+        
+        # Fix incomplete clause definitions like "- ORDER BY: (none" -> "- ORDER BY: (none)"
+        if line.startswith("- ") and line.count("(") != line.count(")"):
+            line = _balance_parens(line)
+        
+        lines.append(line)
+    
+    return "\n".join(lines)
+
+# ============================================================================
+# GROUP BY / HAVING VALIDATORS WITH AUTO-FIX
+# ============================================================================
+
+def _validate_group_by(sql: str) -> tuple[bool, str]:
+    """
+    Validate GROUP BY rules:
+    - Non-aggregated SELECT columns must appear in GROUP BY
+    Returns: (is_valid, fixed_sql)
+    """
+    sql_lower = sql.lower()
+    
+    # If no GROUP BY, nothing to validate
+    if "group by" not in sql_lower:
+        return True, sql
+    
+    # Extract SELECT columns
+    select_match = re.search(r"\bselect\b\s+(.*?)\s+\bfrom\b", sql, flags=re.I | re.S)
+    if not select_match:
+        return True, sql
+    
+    select_clause = select_match.group(1)
+    
+    # Extract GROUP BY columns
+    group_match = re.search(r"\bgroup\s+by\b\s+(.*?)(?:\bhaving\b|\border\s+by\b|\blimit\b|;|$)", sql, flags=re.I | re.S)
+    if not group_match:
+        return True, sql
+    
+    group_clause = group_match.group(1).strip()
+    group_cols = set(re.findall(r"\b\w+\.\w+\b|\b\w+\b", group_clause))
+    
+    # Identify non-aggregated SELECT columns
+    select_cols = []
+    agg_funcs = r"\b(COUNT|SUM|AVG|MIN|MAX|GROUP_CONCAT)\s*\("
+    
+    for col_expr in select_clause.split(","):
+        col_expr = col_expr.strip()
+        # Skip aggregates
+        if re.search(agg_funcs, col_expr, re.I):
+            continue
+        # Skip DISTINCT
+        col_expr = re.sub(r"\bDISTINCT\b", "", col_expr, flags=re.I).strip()
+        # Extract column reference
+        col_match = re.search(r"\b(\w+\.\w+|\w+)\b", col_expr)
+        if col_match:
+            select_cols.append(col_match.group(1))
+    
+    # Check if all non-aggregated SELECT columns are in GROUP BY
+    missing = []
+    for col in select_cols:
+        # Check both qualified and unqualified versions
+        col_base = col.split(".")[-1] if "." in col else col
+        if col not in group_cols and col_base not in group_cols:
+            missing.append(col)
+    
+    if not missing:
+        return True, sql
+    
+    # Auto-fix: add missing columns to GROUP BY
+    new_group = group_clause + ", " + ", ".join(missing)
+    fixed_sql = re.sub(
+        r"(\bgroup\s+by\b\s+)(.*?)(?=\bhaving\b|\border\s+by\b|\blimit\b|;|$)",
+        r"\1" + new_group + " ",
+        sql,
+        flags=re.I | re.S
+    )
+    
+    return False, fixed_sql
+
+def _validate_having(sql: str) -> tuple[bool, str]:
+    """
+    Validate HAVING rules:
+    - HAVING requires GROUP BY
+    - Move non-aggregate filters from HAVING to WHERE when possible
+    Returns: (is_valid, fixed_sql)
+    """
+    sql_lower = sql.lower()
+    
+    if "having" not in sql_lower:
+        return True, sql
+    
+    # HAVING without GROUP BY is invalid
+    if "group by" not in sql_lower:
+        # Try to add a minimal GROUP BY or move HAVING to WHERE
+        having_match = re.search(r"\bhaving\b\s+(.*?)(?:\border\s+by\b|\blimit\b|;|$)", sql, flags=re.I | re.S)
+        if having_match:
+            having_clause = having_match.group(1).strip()
+            # If HAVING contains aggregates, we can't easily fix it
+            if re.search(r"\b(COUNT|SUM|AVG|MIN|MAX)\s*\(", having_clause, re.I):
+                return False, sql  # Invalid, needs manual fix
+            
+            # Move to WHERE
+            if "where" in sql_lower:
+                # Append to existing WHERE
+                fixed_sql = re.sub(
+                    r"(\bwhere\b\s+.*?)(\bhaving\b\s+" + re.escape(having_clause) + r")",
+                    r"\1 AND " + having_clause + " ",
+                    sql,
+                    flags=re.I | re.S
+                )
+                fixed_sql = re.sub(r"\bhaving\b\s+" + re.escape(having_clause), "", fixed_sql, flags=re.I)
+            else:
+                # Add WHERE clause
+                fixed_sql = re.sub(
+                    r"(\bfrom\b\s+.*?)(\bhaving\b\s+" + re.escape(having_clause) + r")",
+                    r"\1 WHERE " + having_clause + " ",
+                    sql,
+                    flags=re.I | re.S
+                )
+                fixed_sql = re.sub(r"\bhaving\b\s+" + re.escape(having_clause), "", fixed_sql, flags=re.I)
+            
+            return False, fixed_sql
+    
+    return True, sql
+
 # UPDATE D (instr_4): Add Plan-guard + NOCASE heuristic helpers
 def _parse_plan(checked_plan: str) -> dict:
     """Parse minimal ORDER BY and LIMIT from the checked plan."""
@@ -256,6 +557,69 @@ def _score_against_plan(sql: str, checked_plan: str) -> int:
         for tok in re.findall(r"[a-z_][a-z0-9_]*", want, flags=re.I):
             if tok and tok in s: score += 1
     return score
+
+# ============================================================================
+# CARDINALITY-AWARE RANKING
+# ============================================================================
+
+def _check_result_sanity(sql: str, question: str, db_path: str, checked_plan: str) -> int:
+    """
+    Check result sanity based on question intent.
+    Returns penalty score (0 = perfect, higher = worse).
+    """
+    penalty = 0
+    q_lower = question.lower()
+    
+    # Execute query to get result
+    try:
+        con = sqlite3.connect(db_path)
+        cur = con.cursor()
+        cur.execute(sql)
+        rows = cur.fetchall()
+        row_count = len(rows)
+        cur.close()
+        con.close()
+    except Exception:
+        return 100  # Execution failed = maximum penalty
+    
+    # Check top-k intents
+    top_k_match = re.search(r"\btop\s+(\d+)\b|\bfirst\s+(\d+)\b|\bhighest\s+(\d+)\b|\blowest\s+(\d+)\b", q_lower)
+    if top_k_match:
+        k = int(top_k_match.group(1) or top_k_match.group(2) or top_k_match.group(3) or top_k_match.group(4))
+        if row_count > k:
+            penalty += 10  # Returned more than requested
+    
+    # Check LIMIT from plan
+    plan_lower = checked_plan.lower()
+    if "- limit:" in plan_lower:
+        lim_line = plan_lower.split("- limit:",1)[1].split("\n",1)[0].strip()
+        if lim_line != "(none)":
+            lim_match = re.match(r"(\d+)", lim_line)
+            if lim_match:
+                expected_lim = int(lim_match.group(1))
+                if row_count > expected_lim:
+                    penalty += 5
+    
+    # Check distinctness for "different", "distinct", "unique"
+    if any(word in q_lower for word in ["different", "distinct", "unique", "각", "ভিন্ন"]):
+        if len(rows) != len(set(rows)):
+            penalty += 5  # Has duplicates when distinctness expected
+    
+    # Check INTERSECT/UNION semantics
+    if _needs_intersect(question):
+        if "intersect" not in sql.lower() and "inner join" not in sql.lower():
+            penalty += 10  # Missing INTERSECT logic
+    
+    if _needs_union(question):
+        if "union" not in sql.lower():
+            penalty += 10  # Missing UNION logic
+    
+    # Check negation semantics
+    if _needs_negation(question):
+        if not any(kw in sql.lower() for kw in ["not exists", "not in", "left join", "except"]):
+            penalty += 10  # Missing negation logic
+    
+    return penalty
 
 # === Enforce plan table coverage on candidates ===
 def _tables_in_plan(checked_plan: str) -> set[str]:
@@ -514,6 +878,12 @@ def build_plan_prompt(schema_str: str, question: str) -> str:
 
 ### Task
 Given the schema and question, produce a concise SCoT-Plan describing SQL clauses.
+
+**CRITICAL REQUIREMENTS:**
+- Specify PRIMARY KEY / FOREIGN KEY relationships in FROM clause
+- Use fully qualified table.column references everywhere
+- Include explicit ON clauses with FK keys for all JOINs
+
 # Rules for popularity wording:
 # - If the question says "most popular" without mentioning "percentage/share", treat popularity as COUNT of entities (e.g., number of countries).
 # - Only use SUM(Percentage) when the question explicitly asks by percentage/share.
@@ -521,12 +891,12 @@ Given the schema and question, produce a concise SCoT-Plan describing SQL clause
 Return EXACTLY this format:
 
 SCoT-Plan:
-- FROM: <tables and join keys>
-- WHERE: <filters or (none)>
-- GROUP BY: <cols or (none)>
-- HAVING: <conditions or (none)>
-- ORDER BY: <keys or (none)>
-- SELECT: <final columns>
+- FROM: <tables with aliases and explicit JOIN ON fk_col = pk_col>
+- WHERE: <filters with table.column or (none)>
+- GROUP BY: <table.cols or (none)>
+- HAVING: <conditions with aggregates or (none)>
+- ORDER BY: <table.cols or (none)>
+- SELECT: <table.column list>
 - LIMIT: <N or (none)>
 
 {FEW_SHOT_PLAN}
@@ -539,6 +909,12 @@ def build_check_prompt(schema_str: str, plan_text: str) -> str:
 
 {FEW_SHOT_CHECK}
 
+**CRITICAL VALIDATION:**
+- Verify all tables/columns exist in schema
+- Ensure all JOIN clauses have explicit ON with FK keys
+- Confirm all columns are fully qualified (table.column)
+- Check that non-aggregated SELECT columns appear in GROUP BY
+
 Given this SCoT-Plan, fix illegal tables/columns or clause conflicts so it strictly matches the schema.
 
 Return only the corrected plan in the exact same format:
@@ -549,10 +925,19 @@ Return only the corrected plan in the exact same format:
 def build_sql_prompt(schema_str: str, checked_plan: str) -> str:
     return f"""{schema_str.strip()}
 
-Using the SCoT-Plan below, write ONLY the final SQL wrapped in a fenced block:
+Using the SCoT-Plan below, write ONLY the final SQL wrapped in a fenced block.
+
+**MANDATORY REQUIREMENTS:**
+- Qualify ALL columns with table aliases (table.column)
+- Include explicit JOIN ON clauses with FK keys
+- Non-aggregated SELECT columns MUST appear in GROUP BY
+- Use COLLATE NOCASE for string comparisons when appropriate
 
 ```sql
-SELECT ...
+SELECT table.column, ...
+FROM table AS alias
+JOIN other_table AS alias2 ON alias.fk = alias2.pk
+...
 ```
 Rules:
 Return exactly ONE SQL statement ending with ";".
@@ -594,17 +979,23 @@ Return only the corrected SQL:
 def build_standard_sql_prompt(schema_str: str, question: str) -> str:
     return f"""{schema_str.strip()}
 
-Return ONLY the final SQL for the question below, wrapped in a fenced block:
+Return ONLY the final SQL for the question below, wrapped in a fenced block.
+
+**MANDATORY REQUIREMENTS:**
+- Qualify ALL columns with table aliases (table.column)
+- Include explicit JOIN ON clauses with FK keys from schema
+- Use only tables/columns from the schema above
 
 ```sql
-SELECT ...
+SELECT table.column, ...
+FROM table AS alias
+...
 ```
+
 Rules:
-Use only tables/columns from the schema.
-SQL-92 only (no CTE/window).
-Define aliases before using.
-Do NOT add ORDER BY unless ranking/sorting is required.
-No commentary outside the fenced block.
+- SQL-92 only (no CTE/window)
+- Do NOT add ORDER BY unless ranking/sorting is required
+- No commentary outside the fenced block
 
 Question: {question}
 """
@@ -625,6 +1016,197 @@ SQL-92 only (no CTE/window).
 Define aliases before using.
 Do NOT add ORDER BY unless ranking/sorting is required.
 No commentary outside the fenced block.
+
+Question: {question}
+"""
+
+# ============================================================================
+# TEMPLATE SKELETON GENERATORS (HIGH PRIORITY)
+# ============================================================================
+
+def build_not_exists_template(schema_str: str, question: str, schema_map: dict) -> str:
+    """
+    Generate NOT EXISTS anti-join template for negation questions.
+    """
+    return f"""{schema_str.strip()}
+
+This question requires finding items that do NOT have a certain property (negation).
+Use NOT EXISTS or LEFT JOIN ... IS NULL pattern.
+
+Template preference:
+1. NOT EXISTS (most portable):
+```sql
+SELECT table_a.column
+FROM table_a
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM table_b
+  WHERE table_b.fk = table_a.pk
+    AND <additional_conditions>
+);
+```
+
+2. LEFT JOIN anti-join (alternative):
+```sql
+SELECT table_a.column
+FROM table_a
+LEFT JOIN table_b ON table_b.fk = table_a.pk AND <conditions>
+WHERE table_b.pk IS NULL;
+```
+
+Rules:
+- Use only tables/columns from the schema above
+- Explicitly specify all join keys (table_a.pk = table_b.fk)
+- Qualify all columns with table aliases
+- Return ONLY the SQL in a fenced block
+
+Question: {question}
+"""
+
+def build_intersect_skeleton(schema_str: str, question: str) -> str:
+    """
+    Generate INTERSECT skeleton for 'both X and Y' patterns.
+    """
+    return f"""{schema_str.strip()}
+
+This question requires finding items that satisfy BOTH condition X AND condition Y (intersection).
+Use INTERSECT to combine two SELECT statements.
+
+Template:
+```sql
+SELECT column1, column2
+FROM table
+JOIN ...
+WHERE condition_X
+INTERSECT
+SELECT column1, column2
+FROM table
+JOIN ...
+WHERE condition_Y;
+```
+
+Rules:
+- Both SELECT statements must have identical column structure
+- Use explicit JOIN keys from schema
+- Qualify all columns with table aliases
+- Return ONLY the SQL in a fenced block
+
+Question: {question}
+"""
+
+def build_union_skeleton(schema_str: str, question: str) -> str:
+    """
+    Generate UNION skeleton for 'either X or Y' patterns.
+    """
+    return f"""{schema_str.strip()}
+
+This question requires finding items that satisfy EITHER condition X OR condition Y (union).
+Use UNION to combine two SELECT statements.
+
+Template:
+```sql
+SELECT column1, column2
+FROM table
+JOIN ...
+WHERE condition_X
+UNION
+SELECT column1, column2
+FROM table
+JOIN ...
+WHERE condition_Y;
+```
+
+Rules:
+- Both SELECT statements must have identical column structure
+- Use explicit JOIN keys from schema
+- Qualify all columns with table aliases
+- Return ONLY the SQL in a fenced block
+
+Question: {question}
+"""
+
+def build_subquery_extremum_skeleton(schema_str: str, question: str) -> str:
+    """
+    Generate subquery skeleton for per-group extremum (most X per Y, highest X for each Y).
+    """
+    return f"""{schema_str.strip()}
+
+This question requires finding the extreme value (max/min) for EACH group (per-group extremum).
+Use a subquery with GROUP BY to find extremum, then join back.
+
+Template:
+```sql
+SELECT t.column1, t.column2, t.metric_column
+FROM table AS t
+JOIN (
+  SELECT group_key, MAX(metric_column) AS max_metric
+  FROM table
+  WHERE <filters>
+  GROUP BY group_key
+) AS z
+  ON z.group_key = t.group_key 
+  AND z.max_metric = t.metric_column;
+```
+
+Alternative (using NOT EXISTS for most efficient):
+```sql
+SELECT t.column1, t.column2, t.metric_column
+FROM table AS t
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM table AS t2
+  WHERE t2.group_key = t.group_key
+    AND t2.metric_column > t.metric_column
+);
+```
+
+Rules:
+- Identify the group_key (the "per Y" or "each X" entity)
+- Identify the metric_column (the value being maximized/minimized)
+- Use explicit JOIN keys from schema
+- Qualify all columns with table aliases
+- Return ONLY the SQL in a fenced block
+
+Question: {question}
+"""
+
+def build_qd_intercol_candidate_prompt(schema_str: str, question: str, schema_map: dict) -> str:
+    """
+    Generate QD-InterCol style prompt with explicit column grounding.
+    """
+    # Extract FK hints from schema_map
+    fk_hints = []
+    for table, info in schema_map.items():
+        for fk_col, ref_tbl, ref_col in info.get("fks", []):
+            fk_hints.append(f"  - {table}.{fk_col} references {ref_tbl}.{ref_col}")
+    
+    fk_section = "\n".join(fk_hints) if fk_hints else "  (No FK relationships found)"
+    
+    return f"""{schema_str.strip()}
+
+### Foreign Key Relationships:
+{fk_section}
+
+Decompose the question into 3-6 steps with InterCol annotations.
+For EACH step, list the exact table.column references used.
+
+Format:
+Decomposition (InterCOL):
+1. <step description> [Cols: table_a.col1, table_b.col2]
+2. <step description> [Cols: table_c.col3]
+...
+
+Then output ONLY the final SQL in a fenced block:
+```sql
+SELECT ...
+```
+
+Rules:
+- Use ONLY tables/columns from the schema above
+- Use the FK relationships listed for all joins
+- Qualify ALL columns with table aliases (table.column)
+- Include explicit ON clauses with FK keys
+- SQL-92 only (no CTE/window)
 
 Question: {question}
 """
@@ -693,6 +1275,9 @@ def run():
             print(f"  [Check ERR] {i}/{len(data)} -> {e}")
             checked = plan  # fallback
         
+        # Fix incomplete plan syntax
+        checked = _fix_incomplete_plan(checked)
+        
         # Normalize plan to dedupe repeated clauses
         checked = _normalize_plan(checked)
         
@@ -700,77 +1285,151 @@ def run():
         if "SCoT-Plan:" not in checked:
             checked = plan
         
-        # 3) FINAL SQL: 3x SCoT + 1x Standard
-        sql_prompt = build_sql_prompt(schema, checked)
+        # Enumerate PK/FK paths from schema for better grounding
+        schema_map = _enumerate_pk_fk_paths(schema)
+        
+        # ========================================================================
+        # 3) ENSEMBLE CANDIDATE GENERATION (4-6 specialized candidates)
+        # ========================================================================
         candidates = []
         raw_sql_texts = []  # Capture raw model outputs
-        # UPDATE A (instr_4): Change 2 -> 3
-        for _ in range(3):
-            try:
-                sql_text = _to_text(ask_with_retry_cached(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=30))
-                raw_sql_texts.append(sql_text)
-
-                cand_sql = extract_sql(sql_text)
-                candidates.append(cand_sql)
-            except Exception:
-                pass # Ignore failure on one candidate
-
-        # extra: standard-style candidate
+        
+        # Candidate 1: SCoT-Native (plan-based, temperature 0.2 for slight diversity)
+        sql_prompt = build_sql_prompt(schema, checked)
+        try:
+            sql_text = _to_text(ask_with_retry_cached(sql_prompt, temperature=0.2, max_output_tokens=1024, timeout=30))
+            raw_sql_texts.append(("SCoT-Native", sql_text))
+            cand_sql = extract_sql(sql_text)
+            if cand_sql.strip().lower() != "select 1;":
+                candidates.append(("SCoT-Native", cand_sql))
+        except Exception:
+            pass
+        
+        # Candidate 2: QD-InterCol style (explicit column grounding)
+        try:
+            qd_prompt = build_qd_intercol_candidate_prompt(schema, q, schema_map)
+            qd_text = _to_text(ask_with_retry_cached(qd_prompt, temperature=0.2, max_output_tokens=1200, timeout=30))
+            raw_sql_texts.append(("QD-InterCol", qd_text))
+            qd_sql = extract_sql(qd_text)
+            if qd_sql.strip().lower() != "select 1;":
+                candidates.append(("QD-InterCol", qd_sql))
+        except Exception:
+            pass
+        
+        # Candidate 3: Standard Direct (no reasoning)
         try:
             std_text = _to_text(ask_with_retry_cached(
-    build_standard_sql_prompt(schema, q),
-    temperature=0.0, max_output_tokens=1024, timeout=30
-))
-            raw_sql_texts.append(std_text)
-
+                build_standard_sql_prompt(schema, q),
+                temperature=0.0, max_output_tokens=1024, timeout=30
+            ))
+            raw_sql_texts.append(("Standard", std_text))
             std_sql = extract_sql(std_text)
-            candidates.append(std_sql)
+            if std_sql.strip().lower() != "select 1;":
+                candidates.append(("Standard", std_sql))
         except Exception:
             pass
-
-        # Optional: negation-aware extra candidate
-        try:
-            if _needs_setdiff(q):
-                std_neg_text = _to_text(ask_with_retry_cached(
-                    build_standard_sql_prompt_setdiff(schema, q),
-                    temperature=0.0, max_output_tokens=1024, timeout=30
-                ))
-                raw_sql_texts.append(std_neg_text)
-                std_neg_sql = extract_sql(std_neg_text)
-                candidates.append(std_neg_sql)
-        except Exception:
-            pass
-
-        # Drop trivial fallbacks
-        candidates = [c for c in candidates if c.strip().lower() != "select 1;"]
         
-        # Length guard
-        candidates = [c[:MAX_SQL_LEN] for c in candidates]
-        # Deduplicate while preserving order
-        candidates = _dedup_preserve_order(candidates)
+        # Pattern-specific candidates (based on question analysis)
         
-        # Filter out truncated/broken SQL
-        candidates = [c for c in candidates if _is_viable_sql(c)]
-        # Try to clean bad tails
-        candidates = [c if _is_viable_sql(c) else _clean_bad_tail(c) for c in candidates]
-        
-        # Schema validation: reject candidates with invalid table/column refs
-        candidates = [c for c in candidates if _uses_only_schema(c, schema_tables, schema_cols)]
-
-        # Retry once if we lost all candidates
-        if not candidates:
+        # Candidate 4: NOT EXISTS anti-join (for negation questions)
+        if _needs_negation(q):
             try:
-                sql_text = _to_text(ask_with_retry_cached(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=30))
-                cand_sql = extract_sql(sql_text)
-                if cand_sql.strip().lower() != "select 1;":
-                    candidates.append(cand_sql)
+                neg_prompt = build_not_exists_template(schema, q, schema_map)
+                neg_text = _to_text(ask_with_retry_cached(neg_prompt, temperature=0.2, max_output_tokens=1024, timeout=30))
+                raw_sql_texts.append(("NOT-EXISTS", neg_text))
+                neg_sql = extract_sql(neg_text)
+                if neg_sql.strip().lower() != "select 1;":
+                    candidates.append(("NOT-EXISTS", neg_sql))
             except Exception:
                 pass
         
-        # ---- Canonicalization step ----
+        # Candidate 5: INTERSECT skeleton (for "both X and Y")
+        if _needs_intersect(q):
+            try:
+                intersect_prompt = build_intersect_skeleton(schema, q)
+                intersect_text = _to_text(ask_with_retry_cached(intersect_prompt, temperature=0.2, max_output_tokens=1200, timeout=30))
+                raw_sql_texts.append(("INTERSECT", intersect_text))
+                intersect_sql = extract_sql(intersect_text)
+                if intersect_sql.strip().lower() != "select 1;":
+                    candidates.append(("INTERSECT", intersect_sql))
+            except Exception:
+                pass
+        
+        # Candidate 6: UNION skeleton (for "either X or Y")
+        if _needs_union(q) and not _needs_intersect(q):  # Avoid both
+            try:
+                union_prompt = build_union_skeleton(schema, q)
+                union_text = _to_text(ask_with_retry_cached(union_prompt, temperature=0.2, max_output_tokens=1200, timeout=30))
+                raw_sql_texts.append(("UNION", union_text))
+                union_sql = extract_sql(union_text)
+                if union_sql.strip().lower() != "select 1;":
+                    candidates.append(("UNION", union_sql))
+            except Exception:
+                pass
+        
+        # Candidate 7: Subquery extremum (for per-group max/min)
+        if _needs_subquery(q):
+            try:
+                subq_prompt = build_subquery_extremum_skeleton(schema, q)
+                subq_text = _to_text(ask_with_retry_cached(subq_prompt, temperature=0.2, max_output_tokens=1200, timeout=30))
+                raw_sql_texts.append(("SUBQUERY", subq_text))
+                subq_sql = extract_sql(subq_text)
+                if subq_sql.strip().lower() != "select 1;":
+                    candidates.append(("SUBQUERY", subq_sql))
+            except Exception:
+                pass
+        
+        # Extract just SQL from candidates (remove labels)
+        candidate_sqls = [sql for _, sql in candidates]
+        
+        # ========================================================================
+        # PRE-PROCESSING: Sanitize and validate
+        # ========================================================================
+        
+        # Apply pre-SQL sanitizers
+        candidate_sqls = [_remove_dangling_keywords(c) for c in candidate_sqls]
+        candidate_sqls = [_balance_parens(c) for c in candidate_sqls]
+        
+        # Length guard
+        candidate_sqls = [c[:MAX_SQL_LEN] for c in candidate_sqls]
+        
+        # Deduplicate while preserving order
+        candidate_sqls = _dedup_preserve_order(candidate_sqls)
+        
+        # Filter out truncated/broken SQL
+        candidate_sqls = [c for c in candidate_sqls if _is_viable_sql(c)]
+        
+        # Try to clean bad tails
+        candidate_sqls = [c if _is_viable_sql(c) else _clean_bad_tail(c) for c in candidate_sqls]
+        
+        # Apply GROUP BY / HAVING validators with auto-fix
+        validated_sqls = []
+        for c in candidate_sqls:
+            _, fixed = _validate_group_by(c)
+            _, fixed = _validate_having(fixed)
+            validated_sqls.append(fixed)
+        candidate_sqls = validated_sqls
+        
+        # Schema validation: reject candidates with invalid table/column refs
+        candidate_sqls = [c for c in candidate_sqls if _uses_only_schema(c, schema_tables, schema_cols)]
+
+        # Retry once if we lost all candidates
+        if not candidate_sqls:
+            try:
+                sql_prompt = build_sql_prompt(schema, checked)
+                sql_text = _to_text(ask_with_retry_cached(sql_prompt, temperature=0.0, max_output_tokens=1024, timeout=30))
+                cand_sql = extract_sql(sql_text)
+                if cand_sql.strip().lower() != "select 1;":
+                    candidate_sqls.append(cand_sql)
+            except Exception:
+                pass
+        
+        # ========================================================================
+        # CANONICALIZATION (optional refinement)
+        # ========================================================================
         canon_candidates = []
-        canon_raw_texts = []  # Capture raw canon outputs
-        for cand in candidates:
+        canon_raw_texts = []
+        for cand in candidate_sqls:
             try:
                 canon_text = _to_text(ask_with_retry_cached(
                     build_canon_prompt(schema, cand),
@@ -780,16 +1439,18 @@ def run():
                 canon_sql = extract_sql(canon_text)
                 canon_candidates.append(canon_sql if canon_sql.strip().lower() != "select 1;" else cand)
             except Exception:
-                canon_candidates.append(cand)  # fallback on error
+                canon_candidates.append(cand)
         
-        # ---- Post-process (NOCASE + enforce plan ORDER/LIMIT) ----
+        # ========================================================================
+        # POST-PROCESSING: Plan enforcement and preference application
+        # ========================================================================
         canon_candidates = [_enforce_plan(_add_nocase(c), checked) for c in canon_candidates]
-        candidates       = [_enforce_plan(_add_nocase(c), checked) for c in candidates]
+        candidate_sqls = [_enforce_plan(_add_nocase(c), checked) for c in candidate_sqls]
         
-        # Apply setdiff preference for negation queries
-        if _needs_setdiff(q):
+        # Apply negation preference (NOT EXISTS / LEFT JOIN)
+        if _needs_negation(q):
             canon_candidates = [_prefer_setdiff(c, q) for c in canon_candidates]
-            candidates       = [_prefer_setdiff(c, q) for c in candidates]
+            candidate_sqls = [_prefer_setdiff(c, q) for c in candidate_sqls]
         
         # Length guard and dedup on canonical candidates
         canon_candidates = [c[:MAX_SQL_LEN] for c in canon_candidates]
@@ -802,40 +1463,50 @@ def run():
         # Schema validation on canonical candidates
         canon_candidates = [c for c in canon_candidates if _uses_only_schema(c, schema_tables, schema_cols)]
         
-        # ---- Re-rank by ensuring FROM tables from plan exist in SQL ----
+        # ========================================================================
+        # EXECUTION-GUIDED RANKING WITH CARDINALITY CHECKS
+        # ========================================================================
+        
+        # Re-rank by plan table coverage
         canon_candidates = _filter_by_plan_tables(canon_candidates, checked)
-        candidates       = _filter_by_plan_tables(candidates, checked)
+        candidate_sqls = _filter_by_plan_tables(candidate_sqls, checked)
         
-        # Score and sort by plan-fit
-        canon_candidates = sorted(canon_candidates, key=lambda c: _score_against_plan(c, checked), reverse=True)
-        candidates       = sorted(candidates,       key=lambda c: _score_against_plan(c, checked), reverse=True)
-
-
-
-        sql = None
-        last_error = "failed to execute" # Default error
+        # Combine all candidates for unified ranking
+        all_candidates = list(set(canon_candidates + candidate_sqls))
         
-        # Try canonical candidates first
-        for cand in canon_candidates:
+        # Score each candidate: (execution_ok, -sanity_penalty, plan_fit_score, sql)
+        scored_candidates = []
+        for cand in all_candidates:
+            # Test execution
             ok, err_msg = try_exec(ex["db_path"], cand)
+            exec_ok = 1 if ok else 0
+            
+            # Sanity check (only if execution succeeded)
             if ok:
-                sql = cand
-                break
-            last_error = err_msg # Store the error
-
-        # If canon fails, try original candidates (fallback)
-        if sql is None:
-            for cand in candidates:
-                ok, err_msg = try_exec(ex["db_path"], cand)
-                if ok:
-                    sql = cand
-                    break
-                last_error = err_msg # Store the error
+                sanity_penalty = _check_result_sanity(cand, q, ex["db_path"], checked)
+            else:
+                sanity_penalty = 0  # Doesn't matter if execution failed
+            
+            # Plan fit score
+            plan_score = _score_against_plan(cand, checked)
+            
+            scored_candidates.append((exec_ok, -sanity_penalty, plan_score, cand, err_msg if not ok else ""))
         
-        # Get the first SQL that failed, for the repair prompt
-        failed_sql_for_repair = canon_candidates[0] if canon_candidates else (candidates[0] if candidates else "SELECT 1;")
+        # Sort: execution success first, then lowest sanity penalty, then highest plan fit
+        scored_candidates.sort(key=lambda x: (x[0], x[1], x[2]), reverse=True)
+        
+        # Select best candidate
+        if scored_candidates and scored_candidates[0][0] == 1:  # At least one succeeded
+            sql = scored_candidates[0][3]
+            last_error = ""
+        else:
+            sql = None
+            last_error = scored_candidates[0][4] if scored_candidates else "failed to execute"
+            failed_sql_for_repair = scored_candidates[0][3] if scored_candidates else "SELECT 1;"
 
-        # 4) Execution-guided repair (now with specific error)
+        # ========================================================================
+        # EXECUTION-GUIDED REPAIR (if all candidates failed)
+        # ========================================================================
         if sql is None:
             # Fast repair path for incomplete input
             if "incomplete input" in (last_error or "").lower():
