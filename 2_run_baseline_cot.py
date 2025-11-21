@@ -15,13 +15,13 @@ RUN_DIR    = PROJ_ROOT / "runs" / "dev_600"
 INPUT_TEST_SET = RUN_DIR / "my_test_set.json"
 OUTPUT_FILE_PREFIX = "predicted_cot"
 
-# Labeling-এর জন্য রাখলাম; আসল কলটা utils_gemini_rest ফ্যালব্যাক দিয়ে মডেল বেছে নেবে
+
 MODELS_TO_TEST = [
     "models/gemini-2.5-pro",
 ]
 
-TEMPERATURE_PLAN = 0.0   # single-pass CoT → 0.0
-SLEEP_EVERY = 10         # প্রতি ১০ কুয়েরিতে ছোট বিরতি
+TEMPERATURE_PLAN = 0.0   
+SLEEP_EVERY = 10         
 
 def create_cot_prompt(question, schema_str):
     """
@@ -80,7 +80,7 @@ def run():
     data = json.loads(INPUT_TEST_SET.read_text(encoding="utf-8"))
     print(f"[i] Loaded {len(data)} items from {INPUT_TEST_SET}")
 
-    # চাইলে দ্রুত টেস্টের জন্য আনকমেন্ট করুন:
+    
     # data = data[:5]
 
     for model_name in MODELS_TO_TEST:
@@ -94,7 +94,7 @@ def run():
             prompt = create_cot_prompt(q, schema)
 
             try:
-                # helper নিজেই pro -> flash -> flash-latest ট্রাই করবে
+                
                 resp_text = gemini_generate_text(
                     prompt,
                     timeout=90,
