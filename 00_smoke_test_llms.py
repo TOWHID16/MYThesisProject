@@ -19,12 +19,12 @@ print("[i] google-generativeai version:", google_genai_pkg.__version__)
 # OpenAI: try multiple chat models
 # -------------------------------
 OPENAI_MODELS = [
-    "gpt-4o",
+    #"gpt-4o",
     "gpt-4o-mini",
-    "gpt-4-turbo",
-    "gpt-4.1",
-    "gpt-4.1-mini",
-    "gpt-3.5-turbo",
+    # "gpt-4-turbo",
+    # "gpt-4.1",
+    # "gpt-4.1-mini",
+    # "gpt-3.5-turbo",
 ]
 
 print("\n==== OpenAI smoke ====")
